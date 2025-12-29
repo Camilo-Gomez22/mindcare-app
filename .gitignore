@@ -10,3 +10,8 @@ desktop.ini
 # No subir logs
 *.log
 npm-debug.log*
+
+# No subir guías y documentación privada
+GUIA_RAPIDA_GOOGLE.md
+INTEGRACION_CALENDARIO.md
+SETUP_GOOGLE_API.md
