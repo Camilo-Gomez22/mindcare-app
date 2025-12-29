@@ -1,0 +1,332 @@
+// Reports Module - Generates reports and exports to Excel
+
+import Storage from './storage.js';
+import { showToast } from '../app.js';
+
+class Reports {
+    static currentReportData = null;
+
+    static init() {
+        this.setupEventListeners();
+        this.setDefaultDates();
+    }
+
+    static setupEventListeners() {
+        // Export to Excel button
+        const exportBtn = document.getElementById('export-excel-btn');
+        if (exportBtn) {
+            exportBtn.addEventListener('click', () => {
+                this.exportToExcel();
+            });
+        }
+
+        // Auto-generate report when date range changes
+        const startDateInput = document.getElementById('report-start-date');
+        const endDateInput = document.getElementById('report-end-date');
+
+        if (startDateInput) {
+            startDateInput.addEventListener('change', () => {
+                this.generateReport();
+            });
+        }
+
+        if (endDateInput) {
+            endDateInput.addEventListener('change', () => {
+                this.generateReport();
+            });
+        }
+    }
+
+    static setDefaultDates() {
+        const today = new Date();
+        const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+        const lastDay = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+
+        const startDateInput = document.getElementById('report-start-date');
+        const endDateInput = document.getElementById('report-end-date');
+
+        if (startDateInput) {
+            startDateInput.value = firstDay.toISOString().split('T')[0];
+        }
+
+        if (endDateInput) {
+            endDateInput.value = lastDay.toISOString().split('T')[0];
+        }
+
+        // Generate initial report
+        this.generateReport().catch(err => console.error('Error generating report:', err));
+    }
+
+    static async generateReport() {
+        const startDateValue = document.getElementById('report-start-date').value;
+        const endDateValue = document.getElementById('report-end-date').value;
+
+        if (!startDateValue || !endDateValue) {
+            document.getElementById('report-content').innerHTML = `
+                <p class="empty-state">Selecciona el rango de fechas completo para generar el reporte</p>
+            `;
+            return;
+        }
+
+        const startDate = new Date(startDateValue);
+        const endDate = new Date(endDateValue);
+        endDate.setHours(23, 59, 59, 999); // Include entire end date
+
+        // Validate date range
+        if (new Date(startDate) > new Date(endDate)) {
+            document.getElementById('report-content').innerHTML = `
+                <p class="empty-state" style="color: var(--danger);">La fecha de inicio no puede ser mayor que la fecha de fin</p>
+            `;
+            return;
+        }
+
+        const appointments = await Storage.getAppointments();
+
+        // Filter appointments by date range
+        const filteredAppointments = appointments.filter(apt => {
+            const aptDate = new Date(apt.date);
+            return aptDate >= startDate && aptDate <= endDate;
+        });
+
+        if (filteredAppointments.length === 0) {
+            document.getElementById('report-content').innerHTML = `
+                <p class="empty-state">No hay citas en el período seleccionado</p>
+            `;
+            return;
+        }
+
+        await this.renderReport(filteredAppointments, startDateValue, endDateValue);
+    }
+
+    static async renderReport(appointments, startDate, endDate) {
+        const start = new Date(startDate);
+        const end = new Date(endDate);
+
+        const formatDate = (date) => {
+            return date.toLocaleDateString('es-ES', {
+                day: 'numeric',
+                month: 'long',
+                year: 'numeric'
+            });
+        };
+
+        const periodLabel = `${formatDate(start)} - ${formatDate(end)}`;
+
+        // Group by patient
+        const patientStats = {};
+        let totalRevenue = 0;
+        let totalPending = 0;
+
+        for (const apt of appointments) {
+            if (!patientStats[apt.patientId]) {
+                const patient = await Storage.getPatientById(apt.patientId);
+                patientStats[apt.patientId] = {
+                    patient,
+                    sessions: 0,
+                    paid: 0,
+                    pending: 0
+                };
+            }
+
+            patientStats[apt.patientId].sessions++;
+
+            if (apt.paymentStatus === 'pendiente') {
+                patientStats[apt.patientId].pending += apt.amount;
+                totalPending += apt.amount;
+            } else {
+                patientStats[apt.patientId].paid += apt.amount;
+                totalRevenue += apt.amount;
+            }
+        }
+
+        // Save for Excel export
+        this.currentReportData = {
+            startDate,
+            endDate,
+            periodLabel,
+            appointments,
+            patientStats,
+            totalRevenue,
+            totalPending
+        };
+
+        let html = `
+            <div class="report-header">
+                <h3>Reporte del Período</h3>
+                <p class="report-period">${periodLabel}</p>
+                <div class="report-summary">
+                    <div class="summary-item">
+                        <span class="summary-label">Total de Citas:</span>
+                        <span class="summary-value">${appointments.length}</span>
+                    </div>
+                    <div class="summary-item">
+                        <span class="summary-label">Ingresos Totales:</span>
+                        <span class="summary-value">$${totalRevenue.toLocaleString()}</span>
+                    </div>
+                    <div class="summary-item">
+                        <span class="summary-label">Pagos Pendientes:</span>
+                        <span class="summary-value">$${totalPending.toLocaleString()}</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="report-details">
+                <h4>Detalle por Paciente</h4>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Paciente</th>
+                            <th>Sesiones</th>
+                            <th>Pagado</th>
+                            <th>Pendiente</th>
+                            <th>Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+        `;
+
+        Object.values(patientStats).forEach(stat => {
+            const total = stat.paid + stat.pending;
+            html += `
+                <tr>
+                    <td><strong>${stat.patient.firstname} ${stat.patient.lastname}</strong></td>
+                    <td>${stat.sessions}</td>
+                    <td style="color: var(--success);">$${stat.paid.toLocaleString()}</td>
+                    <td style="color: var(--error);">$${stat.pending.toLocaleString()}</td>
+                    <td><strong>$${total.toLocaleString()}</strong></td>
+                </tr>
+            `;
+        });
+
+        const grandTotal = totalRevenue + totalPending;
+        html += `
+                        <tr style="background: var(--gray-100); font-weight: bold;">
+                            <td>TOTAL</td>
+                            <td>${appointments.length}</td>
+                            <td style="color: var(--success);">$${totalRevenue.toLocaleString()}</td>
+                            <td style="color: var(--error);">$${totalPending.toLocaleString()}</td>
+                            <td>$${grandTotal.toLocaleString()}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        `;
+
+        document.getElementById('report-content').innerHTML = html;
+    }
+
+    static async exportToExcel() {
+        if (!this.currentReportData) {
+            showToast('Por favor genera un reporte primero', 'error');
+            return;
+        }
+
+        const { periodLabel, patientStats, appointments, totalRevenue, totalPending } = this.currentReportData;
+
+        // Helper function to format dates
+        const formatDate = (date) => {
+            return date.toLocaleDateString('es-ES', {
+                day: 'numeric',
+                month: 'long',
+                year: 'numeric'
+            });
+        };
+
+        // Create workbook
+        const wb = XLSX.utils.book_new();
+
+        // Summary sheet
+        const summaryData = [
+            ['Reporte de Período', periodLabel],
+            [],
+            ['Métrica', 'Valor'],
+            ['Total Citas', appointments.length],
+            ['Ingresos Totales', totalRevenue],
+            ['Pagos Pendientes', totalPending],
+            ['Total General', totalRevenue + totalPending]
+        ];
+
+        const wsSummary = XLSX.utils.aoa_to_sheet(summaryData);
+        XLSX.utils.book_append_sheet(wb, wsSummary, 'Resumen');
+
+        // Patient details sheet with enhanced formatting
+        const patientDetailsData = [
+            ['REPORTE DE PERÍODO'],
+            [`Del ${formatDate(new Date(this.currentReportData.startDate))} al ${formatDate(new Date(this.currentReportData.endDate))}`],
+            [], // Empty row
+            ['Paciente', 'Sesiones', 'Pagado', 'Pendiente', 'Total']
+        ];
+
+        Object.values(patientStats).forEach(stat => {
+            const total = stat.paid + stat.pending;
+            patientDetailsData.push([
+                `${stat.patient.firstname} ${stat.patient.lastname}`,
+                stat.sessions,
+                stat.paid,
+                stat.pending,
+                total
+            ]);
+        });
+
+        // Add separator
+        patientDetailsData.push([]);
+
+        // Add totals row
+        const grandTotal = totalRevenue + totalPending;
+        patientDetailsData.push([
+            '═══ TOTALES ═══',
+            appointments.length,
+            totalRevenue,
+            totalPending,
+            grandTotal
+        ]);
+
+        // Add empty row before summary
+        patientDetailsData.push([]);
+
+        // Add summary section
+        const averagePerAppointment = appointments.length > 0 ? totalRevenue / appointments.length : 0;
+
+        patientDetailsData.push(['RESUMEN DEL PERÍODO']);
+        patientDetailsData.push([]);
+        patientDetailsData.push(['Total de Citas:', appointments.length]);
+        patientDetailsData.push(['Ingresos Totales:', totalRevenue]);
+        patientDetailsData.push(['Pagos Pendientes:', totalPending]);
+        patientDetailsData.push(['Total General:', grandTotal]);
+        patientDetailsData.push([]);
+        patientDetailsData.push(['Promedio por Cita:', averagePerAppointment]);
+
+        const wsPatients = XLSX.utils.aoa_to_sheet(patientDetailsData);
+        XLSX.utils.book_append_sheet(wb, wsPatients, 'Detalle por Paciente');
+
+        // Appointments details sheet
+        const appointmentsData = [
+            ['Fecha', 'Hora', 'Paciente', 'Tipo', 'Monto', 'Estado Pago', 'Método']
+        ];
+
+        for (const apt of appointments) {
+            const patient = await Storage.getPatientById(apt.patientId);
+            const date = new Date(apt.date);
+            appointmentsData.push([
+                date.toLocaleDateString('es-ES'),
+                apt.time,
+                `${patient.firstname} ${patient.lastname}`,
+                apt.type,
+                apt.amount,
+                apt.paymentStatus === 'pendiente' ? 'Pendiente' : 'Pagado',
+                apt.paymentStatus === 'pendiente' ? '-' : apt.paymentStatus
+            ]);
+        }
+
+        const wsAppointments = XLSX.utils.aoa_to_sheet(appointmentsData);
+        XLSX.utils.book_append_sheet(wb, wsAppointments, 'Todas las Citas');
+
+        // Generate Excel file
+        const fileName = `Reporte_${periodLabel.replace(/\s/g, '_').replace(/\//g, '-')}.xlsx`;
+        XLSX.writeFile(wb, fileName);
+
+        showToast('Reporte exportado exitosamente', 'success');
+    }
+}
+
+export default Reports;

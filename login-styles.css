@@ -1,0 +1,207 @@
+/* ===== Login Screen Styles ===== */
+.login-screen {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100vh;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+    animation: fadeIn 0.5s ease;
+}
+
+.login-container {
+    width: 100%;
+    max-width: 480px;
+    padding: var(--spacing-xl);
+}
+
+.login-card {
+    background: var(--white);
+    border-radius: var(--radius-lg);
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    padding: var(--spacing-2xl);
+    animation: slideUp 0.6s ease;
+}
+
+.login-header {
+    text-align: center;
+    margin-bottom: var(--spacing-2xl);
+}
+
+.login-logo {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 80px;
+    height: 80px;
+    background: var(--gradient-1);
+    border-radius: 50%;
+    margin-bottom: var(--spacing-md);
+    box-shadow: var(--shadow-lg);
+}
+
+.logo-icon-large {
+    width: 48px;
+    height: 48px;
+    color: var(--white);
+}
+
+.login-header h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: var(--gray-900);
+    margin: 0;
+    margin-bottom: var(--spacing-xs);
+}
+
+.login-subtitle {
+    font-size: 1rem;
+    color: var(--gray-600);
+    margin: 0;
+}
+
+.login-content {
+    margin-bottom: var(--spacing-xl);
+}
+
+.login-content h2 {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: var(--gray-900);
+    margin-bottom: var(--spacing-sm);
+    text-align: center;
+}
+
+.login-description {
+    text-align: center;
+    color: var(--gray-600);
+    margin-bottom: var(--spacing-xl);
+    line-height: 1.6;
+}
+
+.btn-google-login {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--spacing-md);
+    width: 100%;
+    padding: var(--spacing-lg) var(--spacing-xl);
+    background: var(--white);
+    color: var(--gray-700);
+    border: 2px solid var(--gray-300);
+    border-radius: var(--radius-md);
+    font-size: 1.125rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: var(--shadow-sm);
+}
+
+.btn-google-login:hover {
+    background: var(--gray-50);
+    border-color: var(--gray-400);
+    box-shadow: var(--shadow-md);
+    transform: translateY(-2px);
+}
+
+.btn-google-login:active {
+    transform: translateY(0);
+}
+
+.btn-google-login svg {
+    flex-shrink: 0;
+}
+
+.btn-google-login span {
+    flex: 1;
+}
+
+.login-footer {
+    margin-top: var(--spacing-xl);
+    padding: var(--spacing-md);
+    background: var(--gray-50);
+    border-radius: var(--radius-md);
+    text-align: center;
+}
+
+.login-footer p {
+    margin: 0;
+    font-size: 0.875rem;
+    color: var(--gray-700);
+}
+
+.login-features {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--spacing-md);
+    margin-top: var(--spacing-xl);
+    padding-top: var(--spacing-xl);
+    border-top: 1px solid var(--gray-200);
+}
+
+.feature-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--spacing-xs);
+    text-align: center;
+}
+
+.feature-item svg {
+    width: 32px;
+    height: 32px;
+    color: var(--primary);
+}
+
+.feature-item span {
+    font-size: 0.75rem;
+    color: var(--gray-600);
+    font-weight: 500;
+}
+
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+/* Responsive Login */
+@media (max-width: 768px) {
+    .login-container {
+        padding: var(--spacing-md);
+    }
+
+    .login-card {
+        padding: var(--spacing-xl);
+    }
+
+    .login-header h1 {
+        font-size: 2rem;
+    }
+
+    .login-features {
+        grid-template-columns: 1fr;
+        gap: var(--spacing-sm);
+    }
+}

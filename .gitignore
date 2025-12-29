@@ -1,0 +1,12 @@
+# No subir archivos temporales o de sistema
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# No subir archivos de configuración local
+.vscode/
+.idea/
+
+# No subir logs
+*.log
+npm-debug.log*

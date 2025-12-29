@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description"
+        content="Sistema de gestión de pacientes para consultorios de psicoanálisis - Agenda, citas, pagos y reportes">
+    <meta name="keywords" content="psicoanálisis, agenda pacientes, gestión consultorios, citas médicas">
+    <title>Sistema de Gestión de Pacientes - Psicoanálisis</title>
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@600;700&display=swap"
+        rel="stylesheet">
+
+    <!-- Stylesheet -->
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="login-styles.css">
+
+    <!-- SheetJS for Excel Export -->
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+</head>
+
+<body>
+    <!-- Login Screen (shown before authentication) -->
+    <div id="login-screen" class="login-screen">
+        <div class="login-container">
+            <div class="login-card">
+                <div class="login-header">
+                    <div class="login-logo">
+                        <img src="images/logo.jpg" alt="Logo" class="logo-image-large">
+                    </div>
+                    <p class="login-subtitle">Sistema de Gestión para Psicoanálisis</p>
+                </div>
+
+                <div class="login-content">
+                    <h2>Bienvenido</h2>
+                    <p class="login-description">Inicia sesión con tu cuenta de Google para acceder a la aplicación</p>
+
+                    <button id="google-signin-btn-login" class="btn-google-login">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path
+                                d="M23.52 12.27c0-.79-.07-1.54-.19-2.27h-11.3v4.51h6.47c-.29 1.48-1.14 2.73-2.4 3.58v3h3.86c2.26-2.09 3.56-5.17 3.56-8.82Z"
+                                fill="#4285F4" />
+                            <path
+                                d="M12.03 24c3.24 0 5.95-1.08 7.93-2.91l-3.86-3c-1.08.72-2.45 1.16-4.07 1.16-3.13 0-5.78-2.11-6.73-4.96H1.29v3.09C3.26 21.3 7.35 24 12.03 24Z"
+                                fill="#34A853" />
+                            <path
+                                d="M5.3 14.29c-.24-.72-.38-1.49-.38-2.29s.14-1.57.38-2.29V6.62H1.29C.47 8.24 0 10.06 0 12c0 1.94.47 3.76 1.29 5.38l4.01-3.09Z"
+                                fill="#FBBC05" />
+                            <path
+                                d="M12.03 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C18.03 1.19 15.32 0 12.03 0 7.35 0 3.26 2.7 1.29 6.62L5.3 9.71c.95-2.85 3.6-4.96 6.73-4.96Z"
+                                fill="#EA4335" />
+                        </svg>
+                        <span>Iniciar sesión con Google</span>
+                    </button>
+
+                    <div class="login-footer">
+                        <p>💡 <strong>Tip:</strong> Usa la cuenta de Gmail de tu consultorio</p>
+                    </div>
+                </div>
+
+                <div class="login-features">
+                    <div class="feature-item">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                        </svg>
+                        <span>100% Seguro y Privado</span>
+                    </div>
+                    <div class="feature-item">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                            <circle cx="9" cy="7" r="4"></circle>
+                            <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                            <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                        </svg>
+                        <span>Gestión de Pacientes</span>
+                    </div>
+                    <div class="feature-item">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                            <line x1="16" y1="2" x2="16" y2="6"></line>
+                            <line x1="8" y1="2" x2="8" y2="6"></line>
+                            <line x1="3" y1="10" x2="21" y2="10"></line>
+                        </svg>
+                        <span>Citas y Recordatorios</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Header (hidden until login) -->
+    <header class="header" id="app-header" style="display: none;">
+        <div class="container">
+            <div class="header-content">
+                <div class="logo">
+                    <img src="images/logo.jpg" alt="Logo" class="logo-image">
+                </div>
+                <div class="google-auth-section">
+                    <button id="google-signin-btn" class="btn btn-google" style="display: none;">
+                        <svg width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path
+                                d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.615z"
+                                fill="#4285F4" />
+                            <path
+                                d="M9.003 18c2.43 0 4.467-.806 5.956-2.18L12.05 13.56c-.806.54-1.837.86-3.047.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332C2.438 15.983 5.482 18 9.003 18z"
+                                fill="#34A853" />
+                            <path
+                                d="M3.964 10.71c-.18-.54-.282-1.117-.282-1.71 0-.593.102-1.17.282-1.71V4.958H.957C.347 6.173 0 7.548 0 9c0 1.452.348 2.827.957 4.042l3.007-2.332z"
+                                fill="#FBBC05" />
+                            <path
+                                d="M9.003 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.464.891 11.426 0 9.003 0 5.482 0 2.438 2.017.957 4.958L3.964 7.29c.708-2.127 2.692-3.71 5.036-3.71z"
+                                fill="#EA4335" />
+                        </svg>
+                        Conectar con Google
+                    </button>
+                    <div id="google-user-info" class="google-user-info" style="display: none;"></div>
+                    <button id="google-signout-btn" class="btn btn-secondary btn-sm" style="display: none;">Cerrar
+                        Sesión</button>
+                </div>
+                <nav class="main-nav">
+                    <button class="nav-btn active" data-section="dashboard">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="3" y="3" width="7" height="7"></rect>
+                            <rect x="14" y="3" width="7" height="7"></rect>
+                            <rect x="14" y="14" width="7" height="7"></rect>
+                            <rect x="3" y="14" width="7" height="7"></rect>
+                        </svg>
+                        <span>Dashboard</span>
+                    </button>
+                    <button class="nav-btn" data-section="patients">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                            <circle cx="12" cy="7" r="4"></circle>
+                        </svg>
+                        <span>Pacientes</span>
+                    </button>
+                    <button class="nav-btn" data-section="appointments">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                            <line x1="16" y1="2" x2="16" y2="6"></line>
+                            <line x1="8" y1="2" x2="8" y2="6"></line>
+                            <line x1="3" y1="10" x2="21" y2="10"></line>
+                        </svg>
+                        <span>Citas</span>
+                    </button>
+                    <button class="nav-btn" data-section="payments">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="12" y1="1" x2="12" y2="23"></line>
+                            <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+                        </svg>
+                        <span>Pagos</span>
+                    </button>
+                    <button class="nav-btn" data-section="reports">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="18" y1="20" x2="18" y2="10"></line>
+                            <line x1="12" y1="20" x2="12" y2="4"></line>
+                            <line x1="6" y1="20" x2="6" y2="14"></line>
+                        </svg>
+                        <span>Reportes</span>
+                    </button>
+                </nav>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content (hidden until login) -->
+    <main class="main-content" id="app-main" style="display: none;">
+        <div class="container">
+            <!-- Dashboard Section -->
+            <section id="dashboard-section" class="section active">
+                <div class="section-header">
+                    <h2>Dashboard</h2>
+                    <p class="section-subtitle">Resumen general de tu práctica</p>
+                </div>
+
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                                <circle cx="9" cy="7" r="4"></circle>
+                                <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                                <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                            </svg>
+                        </div>
+                        <div class="stat-content">
+                            <h3 id="total-patients">0</h3>
+                            <p>Pacientes Activos</p>
+                        </div>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="stat-icon" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                                <line x1="16" y1="2" x2="16" y2="6"></line>
+                                <line x1="8" y1="2" x2="8" y2="6"></line>
+                                <line x1="3" y1="10" x2="21" y2="10"></line>
+                            </svg>
+                        </div>
+                        <div class="stat-content">
+                            <h3 id="appointments-this-week">0</h3>
+                            <p>Citas Esta Semana</p>
+                        </div>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="stat-icon" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <line x1="12" y1="1" x2="12" y2="23"></line>
+                                <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+                            </svg>
+                        </div>
+                        <div class="stat-content">
+                            <h3 id="revenue-this-month">$0</h3>
+                            <p>Ingresos Este Mes</p>
+                        </div>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="stat-icon" style="background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <polyline points="12 6 12 12 16 14"></polyline>
+                            </svg>
+                        </div>
+                        <div class="stat-content">
+                            <h3 id="pending-payments">$0</h3>
+                            <p>Pagos Pendientes</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="dashboard-grid">
+                    <div class="card">
+                        <h3>Próximas Citas</h3>
+                        <div id="upcoming-appointments" class="appointments-list">
+                            <p class="empty-state">No hay citas programadas</p>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <h3>Pendientes de Pago</h3>
+                        <div id="pending-payments-list" class="payments-list">
+                            <p class="empty-state">No hay pagos pendientes</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Patients Section -->
+            <section id="patients-section" class="section">
+                <div class="section-header">
+                    <div>
+                        <h2>Gestión de Pacientes</h2>
+                        <p class="section-subtitle">Administra la información de tus pacientes</p>
+                    </div>
+                    <button class="btn btn-primary" id="add-patient-btn">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="12" y1="5" x2="12" y2="19"></line>
+                            <line x1="5" y1="12" x2="19" y2="12"></line>
+                        </svg>
+                        Nuevo Paciente
+                    </button>
+                </div>
+
+                <div class="search-bar">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="11" cy="11" r="8"></circle>
+                        <path d="m21 21-4.35-4.35"></path>
+                    </svg>
+                    <input type="text" id="patient-search" placeholder="Buscar paciente por nombre o apellido...">
+                </div>
+
+                <div id="patients-list" class="table-container">
+                    <!-- Patient list will be rendered here -->
+                </div>
+            </section>
+
+            <!-- Appointments Section -->
+            <section id="appointments-section" class="section">
+                <div class="section-header">
+                    <div>
+                        <h2>Gestión de Citas</h2>
+                        <p class="section-subtitle">Organiza y programa las citas de tus pacientes</p>
+                    </div>
+                    <button class="btn btn-primary" id="add-appointment-btn">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="12" y1="5" x2="12" y2="19"></line>
+                            <line x1="5" y1="12" x2="19" y2="12"></line>
+                        </svg>
+                        Nueva Cita
+                    </button>
+                </div>
+
+                <div class="filter-bar">
+                    <select id="appointment-filter" class="filter-select">
+                        <option value="all">Todas las citas</option>
+                        <option value="today">Hoy</option>
+                        <option value="week">Esta semana</option>
+                        <option value="month">Este mes</option>
+                    </select>
+                    <select id="appointment-type-filter" class="filter-select">
+                        <option value="all">Todos los tipos</option>
+                        <option value="presencial">Presencial</option>
+                        <option value="virtual">Virtual</option>
+                    </select>
+                </div>
+
+                <div id="appointments-list" class="appointments-grid">
+                    <!-- Appointments will be rendered here -->
+                </div>
+            </section>
+
+            <!-- Payments Section -->
+            <section id="payments-section" class="section">
+                <div class="section-header">
+                    <div>
+                        <h2>Gestión de Pagos</h2>
+                        <p class="section-subtitle">Registra y monitorea los pagos de tus pacientes</p>
+                    </div>
+                </div>
+
+                <div class="filter-bar">
+                    <select id="payment-status-filter" class="filter-select">
+                        <option value="all">Todos los estados</option>
+                        <option value="paid">Pagados</option>
+                        <option value="pending">Pendientes</option>
+                    </select>
+                    <select id="payment-method-filter" class="filter-select">
+                        <option value="all">Todos los métodos</option>
+                        <option value="efectivo">Efectivo</option>
+                        <option value="transferencia">Transferencia</option>
+                    </select>
+                </div>
+
+                <div id="payments-list" class="table-container">
+                    <!-- Payments will be rendered here -->
+                </div>
+            </section>
+
+            <!-- Reports Section -->
+            <section id="reports-section" class="section">
+                <div class="section-header">
+                    <div>
+                        <h2>Reportes e Informes</h2>
+                        <p class="section-subtitle">Analiza tus datos y exporta informes</p>
+                    </div>
+                    <button class="btn btn-primary" id="export-excel-btn">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                            <polyline points="7 10 12 15 17 10"></polyline>
+                            <line x1="12" y1="15" x2="12" y2="3"></line>
+                        </svg>
+                        Exportar a Excel
+                    </button>
+                </div>
+
+                <div class="reports-controls">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="report-start-date">Inicio del Período:</label>
+                            <input type="date" id="report-start-date" class="form-control">
+                            <small class="form-hint">Fecha de inicio del período a reportar</small>
+                        </div>
+                        <div class="form-group">
+                            <label for="report-end-date">Fin del Período:</label>
+                            <input type="date" id="report-end-date" class="form-control">
+                            <small class="form-hint">Fecha de fin del período a reportar</small>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="report-content" class="report-container">
+                    <p class="empty-state">Selecciona el rango de fechas para generar el reporte</p>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <!-- Modal for Patient Form -->
+    <div id="patient-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="patient-modal-title">Nuevo Paciente</h3>
+                <button class="close-btn" id="close-patient-modal">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
+            <form id="patient-form">
+                <input type="hidden" id="patient-id">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="patient-firstname">Nombre *</label>
+                        <input type="text" id="patient-firstname" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="patient-lastname">Apellido *</label>
+                        <input type="text" id="patient-lastname" class="form-control" required>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="patient-email">Correo Electrónico *</label>
+                        <input type="email" id="patient-email" class="form-control" placeholder="ejemplo@email.com"
+                            required>
+                    </div>
+                    <div class="form-group">
+                        <label for="patient-phone">Teléfono (WhatsApp)</label>
+                        <input type="tel" id="patient-phone" class="form-control" placeholder="+57 300 123 4567">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="patient-startdate">Fecha de Inicio *</label>
+                        <input type="date" id="patient-startdate" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="patient-origin">Lugar de Procedencia</label>
+                        <input type="text" id="patient-origin" class="form-control">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="patient-type">Tipo de Citas Preferido *</label>
+                        <select id="patient-type" class="form-control" required>
+                            <option value="">Seleccionar...</option>
+                            <option value="presencial">Presencial</option>
+                            <option value="virtual">Virtual</option>
+                            <option value="ambos">Ambos</option>
+                        </select>
+                    </div>
+                    <div class="form-group" id="connection-location-group">
+                        <label for="patient-connection">Ciudad de Conexión (para citas virtuales)</label>
+                        <input type="text" id="patient-connection" class="form-control"
+                            placeholder="Ej: Bogotá, Medellín, Cali...">
+                        <small class="form-hint">Ciudad desde donde el paciente se conecta a las citas virtuales</small>
+                    </div>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" id="cancel-patient-btn">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Guardar Paciente</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal for Appointment Form -->
+    <div id="appointment-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="appointment-modal-title">Nueva Cita</h3>
+                <button class="close-btn" id="close-appointment-modal">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
+            <form id="appointment-form">
+                <input type="hidden" id="appointment-id">
+                <div class="form-group">
+                    <label for="appointment-patient">Paciente *</label>
+                    <select id="appointment-patient" class="form-control" required>
+                        <option value="">Seleccionar paciente...</option>
+                    </select>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="appointment-date">Fecha *</label>
+                        <input type="date" id="appointment-date" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="appointment-time">Hora *</label>
+                        <input type="time" id="appointment-time" class="form-control" required>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="appointment-type">Tipo de Cita *</label>
+                    <select id="appointment-type" class="form-control" required>
+                        <option value="">Seleccionar...</option>
+                        <option value="presencial">Presencial</option>
+                        <option value="virtual">Virtual (Link de Meet se genera automáticamente)</option>
+                    </select>
+                </div>
+                <!-- El link de Meet se genera automáticamente con Google Calendar API -->
+                <div class="form-group">
+                    <label for="appointment-notes">Notas (opcional)</label>
+                    <textarea id="appointment-notes" class="form-control" rows="3"></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="appointment-payment-status">Estado de Pago *</label>
+                    <select id="appointment-payment-status" class="form-control" required>
+                        <option value="pendiente">Pendiente</option>
+                        <option value="efectivo">Pagado - Efectivo</option>
+                        <option value="transferencia">Pagado - Transferencia</option>
+                    </select>
+                </div>
+                <div class="form-group" id="payment-amount-group">
+                    <label for="appointment-payment-amount">Monto *</label>
+                    <input type="number" id="appointment-payment-amount" class="form-control" min="0" step="1000"
+                        placeholder="0">
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" id="cancel-appointment-btn">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Guardar Cita</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="toast"></div>
+
+    <!-- JavaScript Modules -->
+    <script type="module" src="app.js"></script>
+</body>
+
+</html>
