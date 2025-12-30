@@ -6,7 +6,7 @@ import Appointments from './modules/appointments.js';
 import Payments from './modules/payments.js';
 import Reports from './modules/reports.js';
 import GoogleCalendarAPI from './modules/google-calendar-api.js';
-import GoogleDriveStorage from './modules/google-drive-storage.js';
+import Settings from './modules/settings.js';
 
 class App {
     static async init() {
@@ -20,6 +20,7 @@ class App {
         Appointments.init();
         Payments.init();
         Reports.init();
+        await Settings.init();
 
         // Setup navigation
         this.setupNavigation();

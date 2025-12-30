@@ -193,9 +193,11 @@ class GoogleCalendarAPI {
         const loginBtn = document.getElementById('google-signin-btn');
         const logoutBtn = document.getElementById('google-signout-btn');
         const userInfo = document.getElementById('google-user-info');
+        const settingsBtn = document.getElementById('settings-btn');
 
         if (loginBtn) loginBtn.style.display = 'none';
-        if (logoutBtn) logoutBtn.style.display = 'block';
+        if (logoutBtn) logoutBtn.style.display = 'inline-flex';
+        if (settingsBtn) settingsBtn.style.display = 'inline-flex';
         if (userInfo) {
             userInfo.style.display = 'block';
             userInfo.textContent = `📧 ${this.userEmail}`;
@@ -206,9 +208,11 @@ class GoogleCalendarAPI {
         const loginBtn = document.getElementById('google-signin-btn');
         const logoutBtn = document.getElementById('google-signout-btn');
         const userInfo = document.getElementById('google-user-info');
+        const settingsBtn = document.getElementById('settings-btn');
 
         if (loginBtn) loginBtn.style.display = 'block';
         if (logoutBtn) logoutBtn.style.display = 'none';
+        if (settingsBtn) settingsBtn.style.display = 'none';
         if (userInfo) userInfo.style.display = 'none';
     }
 
@@ -223,11 +227,15 @@ class GoogleCalendarAPI {
             const startDate = new Date(`${appointment.date}T${appointment.time}`);
             const endDate = new Date(startDate.getTime() + 60 * 60 * 1000); // 1 hora
 
+            // Cargar configuración para obtener la dirección del consultorio
+            const settings = await Storage.getSettings();
+            const officeLocation = `${settings.officeAddress}\n${settings.officeMapLink}`;
+
             const event = {
                 summary: `Cita - ${patient.firstname} ${patient.lastname}`,
                 location: appointment.type === 'virtual'
                     ? appointment.meetLink || 'Virtual'
-                    : 'Consultorio (Presencial)',
+                    : officeLocation,
                 description: this.buildEventDescription(appointment),
                 start: {
                     dateTime: startDate.toISOString(),
@@ -298,21 +306,15 @@ class GoogleCalendarAPI {
     }
 
     static buildEventDescription(appointment) {
-        let description = `Tipo de cita: ${appointment.type === 'virtual' ? 'Virtual' : 'Presencial'}\\n\\n`;
+        let description = '';
 
+        // Solo para citas virtuales, agregar el link de Meet
         if (appointment.type === 'virtual' && appointment.meetLink) {
-            description += `🔗 Link de la reunión:\\n${appointment.meetLink}\\n\\n`;
-            description += `Por favor, conéctate unos minutos antes de la hora programada.\\n\\n`;
+            description += `🔗 Link de la reunión:\n${appointment.meetLink}\n\n`;
+            description += `Por favor, conéctate unos minutos antes de la hora programada.\n\n`;
         }
 
-        if (appointment.notes) {
-            description += `Notas:\\n${appointment.notes}\\n\\n`;
-        }
-
-        description += `Monto: $${appointment.amount.toLocaleString()}\\n`;
-        description += `Estado de pago: ${appointment.paymentStatus === 'pendiente' ? 'Pendiente' : 'Pagado'}\\n\\n`;
-
-        description += `---\\n`;
+        // Mensaje de cancelación/reprogramación
         description += `Si necesitas cancelar o reprogramar, por favor contáctanos con al menos 24 horas de anticipación.`;
 
         return description;

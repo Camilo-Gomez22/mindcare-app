@@ -155,6 +155,43 @@ class Storage {
         return Date.now().toString(36) + Math.random().toString(36).substr(2);
     }
 
+    // Settings management
+    static async getSettings() {
+        try {
+            const data = await GoogleDriveStorage.loadData('settings.json');
+            const localData = localStorage.getItem(STORAGE_KEYS.SETTINGS);
+
+            // Defaults
+            const defaults = {
+                officeAddress: 'Cra 46 #70s-34, interior 201, Sabaneta',
+                officeMapLink: 'https://maps.app.goo.gl/CWmNzMLhkRPvP5vh6'
+            };
+
+            // Retornar datos de Drive o fallback a localStorage o defaults
+            return data && data.officeAddress ? data : (localData ? JSON.parse(localData) : defaults);
+        } catch (error) {
+            console.error('Error cargando settings:', error);
+            const localData = localStorage.getItem(STORAGE_KEYS.SETTINGS);
+            return localData ? JSON.parse(localData) : {
+                officeAddress: 'Cra 46 #70s-34, interior 201, Sabaneta',
+                officeMapLink: 'https://maps.app.goo.gl/CWmNzMLhkRPvP5vh6'
+            };
+        }
+    }
+
+    static async saveSettings(settings) {
+        try {
+            await GoogleDriveStorage.saveData('settings.json', settings);
+            localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(settings));
+            return true;
+        } catch (error) {
+            console.error('Error guardando settings:', error);
+            // Fallback to localStorage only
+            localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(settings));
+            throw error;
+        }
+    }
+
     // Backup & Restore
     static async exportAllData() {
         return {
