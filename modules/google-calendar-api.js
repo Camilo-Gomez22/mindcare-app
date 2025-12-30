@@ -226,6 +226,19 @@ class GoogleCalendarAPI {
             return null;
         }
 
+        // Ensure Calendar API is loaded
+        if (!gapi.client.calendar) {
+            console.log('Calendar API not loaded yet, waiting...');
+            try {
+                await this.init();
+                if (!gapi.client.calendar) throw new Error('Calendar API failed to load');
+            } catch (e) {
+                console.error(e);
+                showToast('Error: API de Calendario no lista. Intenta recargar.', 'error');
+                return null;
+            }
+        }
+
         try {
             const startDate = new Date(`${appointment.date}T${appointment.time}`);
             const endDate = new Date(startDate.getTime() + 60 * 60 * 1000); // 1 hora

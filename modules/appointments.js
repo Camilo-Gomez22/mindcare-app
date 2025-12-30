@@ -229,7 +229,10 @@ class Appointments {
             const patient = await Storage.getPatientById(appointment.patientId);
             if (!patient) continue;
 
-            const date = new Date(appointment.date);
+            // Fix timezone issue by parsing YYYY-MM-DD explicitly
+            const [year, month, day] = appointment.date.split('-').map(Number);
+            const date = new Date(year, month - 1, day);
+
             const formattedDate = date.toLocaleDateString('es-ES', {
                 weekday: 'short',
                 day: 'numeric',
