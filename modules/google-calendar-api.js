@@ -234,6 +234,20 @@ class GoogleCalendarAPI {
             const settings = await Storage.getSettings();
             const officeLocation = `${settings.officeAddress}\n${settings.officeMapLink}`;
 
+            // Configurar recordatorios
+            const now = new Date();
+            const timeDiff = startDate.getTime() - now.getTime();
+            const hoursUntilStart = timeDiff / (1000 * 60 * 60);
+
+            const remindersOverrides = [
+                { method: 'popup', minutes: 60 } // Recordatorio popup 1 hora antes (siempre)
+            ];
+
+            // Solo agregar recordatorio de email 24h antes si la cita es con suficiente anticipación
+            if (hoursUntilStart > 24) {
+                remindersOverrides.push({ method: 'email', minutes: 24 * 60 });
+            }
+
             const event = {
                 summary: `Cita - ${patient.firstname} ${patient.lastname}`,
                 location: appointment.type === 'virtual'
@@ -253,10 +267,7 @@ class GoogleCalendarAPI {
                 ],
                 reminders: {
                     useDefault: false,
-                    overrides: [
-                        { method: 'email', minutes: 24 * 60 }, // 24 horas antes
-                        { method: 'popup', minutes: 60 },       // 1 hora antes
-                    ]
+                    overrides: remindersOverrides
                 },
                 guestsCanModify: false,
                 guestsCanInviteOthers: false,
