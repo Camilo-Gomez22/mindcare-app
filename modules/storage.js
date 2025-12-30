@@ -10,34 +10,49 @@ const STORAGE_KEYS = {
 };
 
 class Storage {
+    // In-memory cache for instant reads
+    static cache = {
+        patients: null,
+        appointments: null,
+        settings: null,
+        lastSync: {}
+    };
+
+    static syncQueue = [];
+    static isSyncing = false;
+
     // Patients
     static async getPatients() {
+        // Return from memory cache if available
+        if (this.cache.patients !== null) {
+            return this.cache.patients;
+        }
+
         try {
-            // Intentar cargar desde Drive
+            // Load from Drive
             const data = await GoogleDriveStorage.loadData('patients.json');
-            // Actualizar caché local
+            // Update cache
+            this.cache.patients = data;
             localStorage.setItem(STORAGE_KEYS.PATIENTS, JSON.stringify(data));
             return data;
         } catch (error) {
             console.log('Usando caché local de pacientes:', error);
-            // Fallback a localStorage
+            // Fallback to localStorage
             const cached = localStorage.getItem(STORAGE_KEYS.PATIENTS);
-            return cached ? JSON.parse(cached) : [];
+            const data = cached ? JSON.parse(cached) : [];
+            this.cache.patients = data;
+            return data;
         }
     }
 
     static async savePatients(patients) {
-        try {
-            // Guardar en Drive primero
-            await GoogleDriveStorage.saveData('patients.json', patients);
-            // Actualizar caché local
-            localStorage.setItem(STORAGE_KEYS.PATIENTS, JSON.stringify(patients));
-        } catch (error) {
-            console.error('Error guardando pacientes en Drive:', error);
-            // Al menos guardar en caché local
-            localStorage.setItem(STORAGE_KEYS.PATIENTS, JSON.stringify(patients));
-            throw error;
-        }
+        // Update memory cache immediately for instant UI response
+        this.cache.patients = patients;
+        localStorage.setItem(STORAGE_KEYS.PATIENTS, JSON.stringify(patients));
+
+        // Queue background sync to Drive
+        this.queueSync('patients', patients);
+        return patients;
     }
 
     static async addPatient(patient) {
@@ -78,32 +93,36 @@ class Storage {
 
     // Appointments
     static async getAppointments() {
+        // Return from memory cache if available
+        if (this.cache.appointments !== null) {
+            return this.cache.appointments;
+        }
+
         try {
-            // Intentar cargar desde Drive
+            // Load from Drive
             const data = await GoogleDriveStorage.loadData('appointments.json');
-            // Actualizar caché local
+            // Update cache
+            this.cache.appointments = data;
             localStorage.setItem(STORAGE_KEYS.APPOINTMENTS, JSON.stringify(data));
             return data;
         } catch (error) {
             console.log('Usando caché local de citas:', error);
-            // Fallback a localStorage
+            // Fallback to localStorage
             const cached = localStorage.getItem(STORAGE_KEYS.APPOINTMENTS);
-            return cached ? JSON.parse(cached) : [];
+            const data = cached ? JSON.parse(cached) : [];
+            this.cache.appointments = data;
+            return data;
         }
     }
 
     static async saveAppointments(appointments) {
-        try {
-            // Guardar en Drive primero
-            await GoogleDriveStorage.saveData('appointments.json', appointments);
-            // Actualizar caché local
-            localStorage.setItem(STORAGE_KEYS.APPOINTMENTS, JSON.stringify(appointments));
-        } catch (error) {
-            console.error('Error guardando citas en Drive:', error);
-            // Al menos guardar en caché local
-            localStorage.setItem(STORAGE_KEYS.APPOINTMENTS, JSON.stringify(appointments));
-            throw error;
-        }
+        // Update memory cache immediately for instant UI response
+        this.cache.appointments = appointments;
+        localStorage.setItem(STORAGE_KEYS.APPOINTMENTS, JSON.stringify(appointments));
+
+        // Queue background sync to Drive
+        this.queueSync('appointments', appointments);
+        return appointments;
     }
 
     static async addAppointment(appointment) {
@@ -209,6 +228,45 @@ class Storage {
     static clearAllData() {
         localStorage.removeItem(STORAGE_KEYS.PATIENTS);
         localStorage.removeItem(STORAGE_KEYS.APPOINTMENTS);
+    }
+
+    // Background sync methods
+    static queueSync(type, data) {
+        this.syncQueue.push({ type, data, timestamp: Date.now() });
+        this.processSyncQueue();
+    }
+
+    static async processSyncQueue() {
+        if (this.isSyncing || this.syncQueue.length === 0) return;
+
+        this.isSyncing = true;
+        this.updateSyncStatus('syncing');
+
+        while (this.syncQueue.length > 0) {
+            const item = this.syncQueue.shift();
+            try {
+                const filename = item.type === 'patients' ? 'patients.json' :
+                    item.type === 'appointments' ? 'appointments.json' :
+                        'settings.json';
+
+                await GoogleDriveStorage.saveData(filename, item.data);
+                this.cache.lastSync[item.type] = Date.now();
+                console.log(`✅ Sincronizado ${item.type} con Drive`);
+            } catch (error) {
+                console.error(`❌ Error sincronizando ${item.type}:`, error);
+                // Re-queue if failed
+                this.syncQueue.push(item);
+                break;
+            }
+        }
+
+        this.isSyncing = false;
+        this.updateSyncStatus(this.syncQueue.length > 0 ? 'pending' : 'synced');
+    }
+
+    static updateSyncStatus(status) {
+        const event = new CustomEvent('syncStatusChange', { detail: { status } });
+        window.dispatchEvent(event);
     }
 }
 

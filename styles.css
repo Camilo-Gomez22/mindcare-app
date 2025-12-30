@@ -200,6 +200,43 @@ body {
     color: var(--gray-700);
 }
 
+/* Sync Indicator */
+.sync-indicator {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+    padding: var(--spacing-xs) var(--spacing-sm);
+    background: var(--gray-50);
+    border-radius: var(--radius-md);
+    font-size: 0.75rem;
+    color: var(--gray-600);
+    transition: var(--transition);
+}
+
+.sync-indicator.syncing {
+    background: #dbeafe;
+    color: #1e40af;
+}
+
+.sync-indicator.syncing .sync-icon {
+    animation: spin 1s linear infinite;
+}
+
+.sync-indicator .sync-icon {
+    width: 14px;
+    height: 14px;
+}
+
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
+}
+
 /* ===== Main Content ===== */
 .main-content {
     padding: var(--spacing-2xl) 0;

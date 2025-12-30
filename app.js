@@ -70,10 +70,35 @@ class App {
             // Check and migrate data if needed
             await this.checkAndMigrateData();
 
+            // Setup sync status listener
+            this.setupSyncListener();
+
         } catch (error) {
             console.log('Google Calendar API no disponible:', error);
             // La aplicación funciona sin Google Calendar API
         }
+    }
+
+    static setupSyncListener() {
+        window.addEventListener('syncStatusChange', (e) => {
+            const syncIndicator = document.getElementById('sync-indicator');
+            const syncText = syncIndicator?.querySelector('.sync-text');
+
+            if (!syncIndicator) return;
+
+            if (e.detail.status === 'syncing') {
+                syncIndicator.classList.add('syncing');
+                if (syncText) syncText.textContent = 'Sincronizando...';
+            } else if (e.detail.status === 'synced') {
+                syncIndicator.classList.remove('syncing');
+                if (syncText) syncText.textContent = 'Sincronizado';
+            }
+
+            // Show sync indicator when logged in
+            if (GoogleCalendarAPI.isSignedIn) {
+                syncIndicator.style.display = 'flex';
+            }
+        });
     }
 
     static async checkAndMigrateData() {
