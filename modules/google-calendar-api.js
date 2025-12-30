@@ -15,6 +15,7 @@ const CONFIG = {
 };
 
 import { showToast } from '../app.js';
+import Storage from './storage.js';
 
 class GoogleCalendarAPI {
     static isInitialized = false;
