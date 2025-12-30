@@ -195,10 +195,12 @@ class GoogleCalendarAPI {
         const logoutBtn = document.getElementById('google-signout-btn');
         const userInfo = document.getElementById('google-user-info');
         const settingsBtn = document.getElementById('settings-btn');
+        const syncIndicator = document.getElementById('sync-indicator');
 
         if (loginBtn) loginBtn.style.display = 'none';
         if (logoutBtn) logoutBtn.style.display = 'inline-flex';
         if (settingsBtn) settingsBtn.style.display = 'inline-flex';
+        if (syncIndicator) syncIndicator.style.display = 'flex';
         if (userInfo) {
             userInfo.style.display = 'block';
             userInfo.textContent = `📧 ${this.userEmail}`;
