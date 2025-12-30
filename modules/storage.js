@@ -21,6 +21,17 @@ class Storage {
     static syncQueue = [];
     static isSyncing = false;
 
+    // Clear in-memory cache to force reload from Drive
+    static clearCache() {
+        this.cache = {
+            patients: null,
+            appointments: null,
+            settings: null,
+            lastSync: {}
+        };
+        console.log('Caché en memoria limpiada');
+    }
+
     // Patients
     static async getPatients() {
         // Return from memory cache if available

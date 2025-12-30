@@ -99,6 +99,16 @@ class App {
                 syncIndicator.style.display = 'flex';
             }
         });
+
+        // Listen for login success to refresh data
+        window.addEventListener('google-signin-success', async () => {
+            console.log('Login exitoso detectado, recargando datos...');
+            Storage.clearCache();
+            await App.updateDashboard();
+            if (window.patientsModule) await patientsModule.renderPatientsList();
+            if (window.appointmentsModule) await appointmentsModule.renderAppointmentsList();
+            if (window.reportsModule) await reportsModule.updateReports();
+        });
     }
 
     static async checkAndMigrateData() {

@@ -90,6 +90,9 @@ class GoogleCalendarAPI {
                     this.updateUIAfterSignIn();
                     this.hideLoginScreen();
                     showToast(`Conectado como ${this.userEmail}`, 'success');
+
+                    // Dispatch login success event to reload data
+                    window.dispatchEvent(new CustomEvent('google-signin-success'));
                 },
             });
 
@@ -165,6 +168,11 @@ class GoogleCalendarAPI {
             this.isSignedIn = true;
             this.updateUIAfterSignIn();
             this.hideLoginScreen();
+
+            // Dispatch login success event to reload data (after a short delay to ensure app is ready)
+            setTimeout(() => {
+                window.dispatchEvent(new CustomEvent('google-signin-success'));
+            }, 1000);
         } else {
             this.showLoginScreen();
         }
