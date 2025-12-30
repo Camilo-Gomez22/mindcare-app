@@ -10,7 +10,7 @@ import Settings from './modules/settings.js';
 
 class App {
     static async init() {
-        console.log('Inicializando MindCare...');
+        console.log('Inicializando MindCare v2.1 (Con correcciones de fecha y sync)...');
 
         // Initialize Google Calendar API
         await this.initGoogleCalendar();
