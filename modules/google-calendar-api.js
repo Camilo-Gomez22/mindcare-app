@@ -402,7 +402,7 @@ class GoogleCalendarAPI {
         }
 
         // Mensaje de confirmación y política de cancelación
-        description += `Tu cita fue agendada. Si se te presenta algún inconveniente que te impida cumplir con tu cita por favor contáctanos con al menos 24 horas de anticipación. De esta manera podrá ser reasignada a otro paciente y se reprogramará tu espacio sin que se genere costo`;
+        description += `Tu cita fue agendada. Si se te presenta algún inconveniente que te impida cumplir con tu cita por favor contáctanos con al menos 24 horas de anticipación. De esta manera podrá ser reasignada a otro paciente y se reprogramará tu espacio sin que se genere costo.`;
 
         return description;
     }
