@@ -142,17 +142,21 @@ class GoogleCalendarAPI {
     }
 
     static signOut() {
+        this.clearAuth();
+        this.updateUIAfterSignOut();
+        this.showLoginScreen();
+        showToast('Sesión cerrada', 'success');
+    }
+
+    // Helper method to clear authentication data
+    static clearAuth() {
+        this.isSignedIn = false;
+        this.userEmail = null;
         gapi.client.setToken(null);
         localStorage.removeItem('google_access_token');
         localStorage.removeItem('google_user_email');
         localStorage.removeItem('google_token_expires_at');
-
-        this.isSignedIn = false;
-        this.userEmail = null;
-        this.updateUIAfterSignOut();
-        this.showLoginScreen();
-
-        showToast('Sesión cerrada', 'success');
+        console.log('🧹 Credenciales limpiadas');
     }
 
     // Token validation and expiration methods
@@ -217,15 +221,28 @@ class GoogleCalendarAPI {
         if (token && email) {
             gapi.client.setToken({ access_token: token });
             this.userEmail = email;
+
+            // Validate token before allowing access
+            if (!this.isTokenValid()) {
+                console.log('⚠️ Token expirado detectado en checkStoredAuth, limpiando sesión...');
+                this.clearAuth();
+                this.showLoginScreen();
+                showToast('Sesión expirada. Por favor, inicia sesión nuevamente.', 'warning');
+                return;
+            }
+
+            // Token válido - permitir acceso
             this.isSignedIn = true;
             this.updateUIAfterSignIn();
             this.hideLoginScreen();
+            console.log('✅ Sesión restaurada exitosamente');
 
             // Dispatch login success event to reload data (after a short delay to ensure app is ready)
             setTimeout(() => {
                 window.dispatchEvent(new CustomEvent('google-signin-success'));
             }, 1000);
         } else {
+            console.log('❌ No hay credenciales guardadas, mostrando login');
             this.showLoginScreen();
         }
     }
