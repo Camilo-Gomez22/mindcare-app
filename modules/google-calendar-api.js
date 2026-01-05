@@ -305,7 +305,7 @@ class GoogleCalendarAPI {
 
             // Cargar configuración para obtener la dirección del consultorio
             const settings = await Storage.getSettings();
-            const officeLocation = `${settings.officeAddress}\n${settings.officeMapLink}`;
+            const officeLocation = settings.officeAddress;
 
             // Configurar recordatorios
             const now = new Date();
@@ -326,7 +326,7 @@ class GoogleCalendarAPI {
                 location: appointment.type === 'virtual'
                     ? appointment.meetLink || 'Virtual'
                     : officeLocation,
-                description: this.buildEventDescription(appointment),
+                description: this.buildEventDescription(appointment, settings.officeMapLink),
                 start: {
                     dateTime: startDate.toISOString(),
                     timeZone: 'America/Bogota',
@@ -392,13 +392,14 @@ class GoogleCalendarAPI {
         }
     }
 
-    static buildEventDescription(appointment) {
+    static buildEventDescription(appointment, officeMapLink = null) {
         let description = '';
 
-        // Solo para citas virtuales, agregar el link de Meet
         if (appointment.type === 'virtual' && appointment.meetLink) {
             description += `🔗 Link de la reunión:\n${appointment.meetLink}\n\n`;
             description += `Por favor, conéctate unos minutos antes de la hora programada.\n\n`;
+        } else if (appointment.type !== 'virtual' && officeMapLink) {
+            description += `📍 Ubicación en Google Maps: ${officeMapLink}\n\n`;
         }
 
         // Mensaje de confirmación y política de cancelación
@@ -417,12 +418,14 @@ class GoogleCalendarAPI {
             const startDate = new Date(`${appointment.date}T${appointment.time}`);
             const endDate = new Date(startDate.getTime() + 60 * 60 * 1000);
 
+            const settings = await Storage.getSettings();
+
             const event = {
                 summary: `Cita - ${patient.firstname} ${patient.lastname}`,
                 location: appointment.type === 'virtual'
                     ? appointment.meetLink || 'Virtual'
-                    : 'Consultorio (Presencial)',
-                description: this.buildEventDescription(appointment),
+                    : settings.officeAddress,
+                description: this.buildEventDescription(appointment, settings.officeMapLink),
                 start: {
                     dateTime: startDate.toISOString(),
                     timeZone: 'America/Bogota',
