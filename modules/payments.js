@@ -55,68 +55,138 @@ class Payments {
             return;
         }
 
-        let html = `
-            <table>
-                <thead>
-                    <tr>
-                        <th>Paciente</th>
-                        <th>Fecha</th>
-                        <th>Tipo Cita</th>
-                        <th>Monto</th>
-                        <th>Estado</th>
-                        <th>Método</th>
-                        <th>Acciones</th>
-                    </tr>
-                </thead>
-                <tbody>
-        `;
+        // Detect if we're on mobile
+        const isMobile = window.innerWidth <= 768;
 
-        for (const appointment of appointments) {
-            const patient = await Storage.getPatientById(appointment.patientId);
-            if (!patient) continue;
+        if (isMobile) {
+            // Mobile view: render as cards
+            let html = '<div class="patients-card-grid">';
 
-            const date = new Date(appointment.date);
-            const formattedDate = date.toLocaleDateString('es-ES', {
-                day: 'numeric',
-                month: 'short',
-                year: 'numeric'
-            });
+            for (const appointment of appointments) {
+                const patient = await Storage.getPatientById(appointment.patientId);
+                if (!patient) continue;
 
-            const isPaid = appointment.paymentStatus !== 'pendiente';
-            const statusText = isPaid ? 'Pagado' : 'Pendiente';
-            const statusColor = isPaid ? 'var(--success)' : 'var(--error)';
-            const methodText = isPaid ? appointment.paymentStatus : '-';
+                const date = new Date(appointment.date);
+                const formattedDate = date.toLocaleDateString('es-ES', {
+                    day: 'numeric',
+                    month: 'short',
+                    year: 'numeric'
+                });
 
-            html += `
-                <tr>
-                    <td><strong>${patient.firstname} ${patient.lastname}</strong></td>
-                    <td>${formattedDate}</td>
-                    <td><span class="appointment-badge badge-${appointment.type}">${appointment.type}</span></td>
-                    <td><strong>$${appointment.amount.toLocaleString()}</strong></td>
-                    <td style="color: ${statusColor};"><strong>${statusText}</strong></td>
-                    <td>${methodText === 'efectivo' ? 'Efectivo' : methodText === 'transferencia' ? 'Transferencia' : '-'}</td>
-                    <td>
-                        <div class="table-actions">
+                const isPaid = appointment.paymentStatus !== 'pendiente';
+                const statusText = isPaid ? 'Pagado' : 'Pendiente';
+                const statusClass = isPaid ? 'no-debt' : 'debt';
+                const methodText = isPaid ? (appointment.paymentStatus === 'efectivo' ? 'Efectivo' : 'Transferencia') : '-';
+
+                html += `
+                    <div class="patient-card">
+                        <div class="patient-card-header">
+                            <h3>${patient.firstname} ${patient.lastname}</h3>
+                            <span class="appointment-badge badge-${appointment.type}">${appointment.type}</span>
+                        </div>
+                        <div class="patient-card-body">
+                            <div class="patient-card-info">
+                                <span class="info-label">📅 Fecha:</span>
+                                <span class="info-value">${formattedDate}</span>
+                            </div>
+                            <div class="patient-card-info">
+                                <span class="info-label">💰 Monto:</span>
+                                <span class="info-value"><strong>$${appointment.amount.toLocaleString()}</strong></span>
+                            </div>
+                            <div class="patient-card-info">
+                                <span class="info-label">📋 Estado:</span>
+                                <span class="info-value ${statusClass}"><strong>${statusText}</strong></span>
+                            </div>
+                            <div class="patient-card-info">
+                                <span class="info-label">💳 Método:</span>
+                                <span class="info-value">${methodText}</span>
+                            </div>
+                        </div>
+                        <div class="patient-card-actions">
                             ${!isPaid ? `
                                 <button class="btn btn-sm btn-success" onclick="window.paymentsModule.markAsPaid('${appointment.id}', 'efectivo')">
-                                    Efectivo
+                                    💵 Efectivo
                                 </button>
                                 <button class="btn btn-sm btn-success" onclick="window.paymentsModule.markAsPaid('${appointment.id}', 'transferencia')">
-                                    Transferencia
+                                    🏦 Transferencia
                                 </button>
                             ` : `
                                 <button class="btn btn-sm btn-secondary" onclick="window.paymentsModule.markAsPending('${appointment.id}')">
-                                    Marcar Pendiente
+                                    ⏳ Marcar Pendiente
                                 </button>
                             `}
                         </div>
-                    </td>
-                </tr>
-            `;
-        }
+                    </div>
+                `;
+            }
 
-        html += '</tbody></table>';
-        container.innerHTML = html;
+            html += '</div>';
+            container.innerHTML = html;
+        } else {
+            // Desktop view: render as table
+            let html = `
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Paciente</th>
+                            <th>Fecha</th>
+                            <th>Tipo Cita</th>
+                            <th>Monto</th>
+                            <th>Estado</th>
+                            <th>Método</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+
+            for (const appointment of appointments) {
+                const patient = await Storage.getPatientById(appointment.patientId);
+                if (!patient) continue;
+
+                const date = new Date(appointment.date);
+                const formattedDate = date.toLocaleDateString('es-ES', {
+                    day: 'numeric',
+                    month: 'short',
+                    year: 'numeric'
+                });
+
+                const isPaid = appointment.paymentStatus !== 'pendiente';
+                const statusText = isPaid ? 'Pagado' : 'Pendiente';
+                const statusColor = isPaid ? 'var(--success)' : 'var(--error)';
+                const methodText = isPaid ? appointment.paymentStatus : '-';
+
+                html += `
+                    <tr>
+                        <td><strong>${patient.firstname} ${patient.lastname}</strong></td>
+                        <td>${formattedDate}</td>
+                        <td><span class="appointment-badge badge-${appointment.type}">${appointment.type}</span></td>
+                        <td><strong>$${appointment.amount.toLocaleString()}</strong></td>
+                        <td style="color: ${statusColor};"><strong>${statusText}</strong></td>
+                        <td>${methodText === 'efectivo' ? 'Efectivo' : methodText === 'transferencia' ? 'Transferencia' : '-'}</td>
+                        <td>
+                            <div class="table-actions">
+                                ${!isPaid ? `
+                                    <button class="btn btn-sm btn-success" onclick="window.paymentsModule.markAsPaid('${appointment.id}', 'efectivo')">
+                                        Efectivo
+                                    </button>
+                                    <button class="btn btn-sm btn-success" onclick="window.paymentsModule.markAsPaid('${appointment.id}', 'transferencia')">
+                                        Transferencia
+                                    </button>
+                                ` : `
+                                    <button class="btn btn-sm btn-secondary" onclick="window.paymentsModule.markAsPending('${appointment.id}')">
+                                        Marcar Pendiente
+                                    </button>
+                                `}
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }
+
+            html += '</tbody></table>';
+            container.innerHTML = html;
+        }
     }
 
     static async markAsPaid(appointmentId, method) {

@@ -151,52 +151,114 @@ class Patients {
             return;
         }
 
-        let html = `
-            <table>
-                <thead>
-                    <tr>
-                        <th>Nombre Completo</th>
-                        <th>Email</th>
-                        <th>Teléfono</th>
-                        <th>Fecha Inicio</th>
-                        <th>Tipo Preferido</th>
-                        <th>Estado Financiero</th>
-                        <th>Acciones</th>
-                    </tr>
-                </thead>
-                <tbody>
-        `;
+        // Detect if we're on mobile
+        const isMobile = window.innerWidth <= 768;
 
-        for (const patient of patientsData) {
-            const appointments = await Storage.getAppointmentsByPatient(patient.id);
-            const debt = this.calculatePatientDebt(appointments);
-            const debtDisplay = debt > 0 ? `$${debt.toLocaleString()}` : 'Al día';
-            const debtClass = debt > 0 ? 'color: var(--error);' : 'color: var(--success);';
+        if (isMobile) {
+            // Mobile view: render as cards
+            let html = '<div class="patients-card-grid">';
 
-            html += `
-                <tr>
-                    <td><strong>${patient.firstname} ${patient.lastname}</strong></td>
-                    <td>${patient.email || '-'}</td>
-                    <td>${patient.phone || '-'}</td>
-                    <td>${new Date(patient.startDate).toLocaleDateString('es-ES')}</td>
-                    <td><span class="appointment-badge badge-${patient.preferredType}">${patient.preferredType}</span></td>
-                    <td style="${debtClass}"><strong>${debtDisplay}</strong></td>
-                    <td>
-                        <div class="table-actions">
+            for (const patient of patientsData) {
+                const appointments = await Storage.getAppointmentsByPatient(patient.id);
+                const debt = this.calculatePatientDebt(appointments);
+                const debtDisplay = debt > 0 ? `$${debt.toLocaleString()}` : 'Al día';
+                const debtClass = debt > 0 ? 'debt' : 'no-debt';
+
+                html += `
+                    <div class="patient-card">
+                        <div class="patient-card-header">
+                            <h3>${patient.firstname} ${patient.lastname}</h3>
+                            <span class="appointment-badge badge-${patient.preferredType}">${patient.preferredType}</span>
+                        </div>
+                        <div class="patient-card-body">
+                            <div class="patient-card-info">
+                                <span class="info-label">📧 Email:</span>
+                                <span class="info-value">${patient.email || '-'}</span>
+                            </div>
+                            <div class="patient-card-info">
+                                <span class="info-label">📱 Teléfono:</span>
+                                <span class="info-value">${patient.phone || '-'}</span>
+                            </div>
+                            <div class="patient-card-info">
+                                <span class="info-label">📅 Inicio:</span>
+                                <span class="info-value">${new Date(patient.startDate).toLocaleDateString('es-ES')}</span>
+                            </div>
+                            <div class="patient-card-info">
+                                <span class="info-label">💰 Estado:</span>
+                                <span class="info-value ${debtClass}"><strong>${debtDisplay}</strong></span>
+                            </div>
+                        </div>
+                        <div class="patient-card-actions">
                             <button class="btn btn-sm btn-secondary" onclick="window.patientsModule.openPatientModal('${patient.id}')">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                                </svg>
                                 Editar
                             </button>
                             <button class="btn btn-sm btn-danger" onclick="window.patientsModule.deletePatient('${patient.id}')">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polyline points="3 6 5 6 21 6"></polyline>
+                                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                                </svg>
                                 Eliminar
                             </button>
                         </div>
-                    </td>
-                </tr>
-            `;
-        }
+                    </div>
+                `;
+            }
 
-        html += '</tbody></table>';
-        container.innerHTML = html;
+            html += '</div>';
+            container.innerHTML = html;
+        } else {
+            // Desktop view: render as table
+            let html = `
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Nombre Completo</th>
+                            <th>Email</th>
+                            <th>Teléfono</th>
+                            <th>Fecha Inicio</th>
+                            <th>Tipo Preferido</th>
+                            <th>Estado Financiero</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+
+            for (const patient of patientsData) {
+                const appointments = await Storage.getAppointmentsByPatient(patient.id);
+                const debt = this.calculatePatientDebt(appointments);
+                const debtDisplay = debt > 0 ? `$${debt.toLocaleString()}` : 'Al día';
+                const debtClass = debt > 0 ? 'color: var(--error);' : 'color: var(--success);';
+
+                html += `
+                    <tr>
+                        <td><strong>${patient.firstname} ${patient.lastname}</strong></td>
+                        <td>${patient.email || '-'}</td>
+                        <td>${patient.phone || '-'}</td>
+                        <td>${new Date(patient.startDate).toLocaleDateString('es-ES')}</td>
+                        <td><span class="appointment-badge badge-${patient.preferredType}">${patient.preferredType}</span></td>
+                        <td style="${debtClass}"><strong>${debtDisplay}</strong></td>
+                        <td>
+                            <div class="table-actions">
+                                <button class="btn btn-sm btn-secondary" onclick="window.patientsModule.openPatientModal('${patient.id}')">
+                                    Editar
+                                </button>
+                                <button class="btn btn-sm btn-danger" onclick="window.patientsModule.deletePatient('${patient.id}')">
+                                    Eliminar
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }
+
+            html += '</tbody></table>';
+            container.innerHTML = html;
+        }
     }
 
     static calculatePatientDebt(appointments) {
