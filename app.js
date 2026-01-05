@@ -10,7 +10,7 @@ import Settings from './modules/settings.js';
 
 class App {
     static async init() {
-        console.log('Inicializando MindCare v2.1 (Con correcciones de fecha y sync)...');
+        console.log('Inicializando MindCare v2.2 (Persistencia de sesión mejorada)...');
 
         // Initialize Google Calendar API
         await this.initGoogleCalendar();
@@ -33,6 +33,9 @@ class App {
         window.appointmentsModule = Appointments;
         window.paymentsModule = Payments;
         window.reportsModule = Reports;
+
+        // Setup session monitoring
+        this.setupSessionMonitoring();
 
         console.log('MindCare iniciado exitosamente');
     }
@@ -109,6 +112,17 @@ class App {
             if (window.appointmentsModule) await appointmentsModule.renderAppointmentsList();
             if (window.reportsModule) await reportsModule.updateReports();
         });
+    }
+
+    static setupSessionMonitoring() {
+        // Check session validity every 5 minutes
+        setInterval(() => {
+            if (GoogleCalendarAPI.isSignedIn && !GoogleCalendarAPI.isTokenValid()) {
+                console.log('⚠️ Token expiró, intentando re-autenticación...');
+                GoogleCalendarAPI.reAuthenticate();
+            }
+        }, 5 * 60 * 1000); // 5 minutes
+        console.log('✅ Monitoreo de sesión activado (cada 5 min)');
     }
 
     static async checkAndMigrateData() {

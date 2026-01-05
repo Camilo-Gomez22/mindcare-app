@@ -79,9 +79,10 @@ class GoogleCalendarAPI {
                         return;
                     }
 
-                    // Guardar token
+                    // Guardar token y tiempo de expiración
                     localStorage.setItem('google_access_token', response.access_token);
                     gapi.client.setToken({ access_token: response.access_token });
+                    this.setTokenExpiration();
 
                     // Obtener info del usuario
                     await this.getUserInfo();
@@ -96,7 +97,7 @@ class GoogleCalendarAPI {
                 },
             });
 
-            tokenClient.requestAccessToken({ prompt: 'consent' });
+            tokenClient.requestAccessToken({ prompt: '' }); // Empty prompt for silent re-auth
 
         } catch (error) {
             console.error('Error en sign in:', error);
@@ -141,14 +142,10 @@ class GoogleCalendarAPI {
     }
 
     static signOut() {
-        const token = gapi.client.getToken();
-        if (token) {
-            google.accounts.oauth2.revoke(token.access_token);
-            gapi.client.setToken(null);
-        }
-
+        gapi.client.setToken(null);
         localStorage.removeItem('google_access_token');
         localStorage.removeItem('google_user_email');
+        localStorage.removeItem('google_token_expires_at');
 
         this.isSignedIn = false;
         this.userEmail = null;
@@ -156,6 +153,61 @@ class GoogleCalendarAPI {
         this.showLoginScreen();
 
         showToast('Sesión cerrada', 'success');
+    }
+
+    // Token validation and expiration methods
+    static isTokenValid() {
+        const token = gapi?.client?.getToken();
+        if (!token || !token.access_token) return false;
+
+        // Check if token expired (expires in ~1 hour)
+        const expiresAt = localStorage.getItem('google_token_expires_at');
+        if (expiresAt && Date.now() > parseInt(expiresAt)) {
+            console.log('Token expirado');
+            return false;
+        }
+        return true;
+    }
+
+    static setTokenExpiration() {
+        // Google tokens expire in 3600 seconds (1 hour)
+        const expiresAt = Date.now() + (3600 * 1000);
+        localStorage.setItem('google_token_expires_at', expiresAt.toString());
+        console.log('Token expirará en 1 hora');
+    }
+
+    static async reAuthenticate() {
+        if (!this.isTokenValid()) {
+            console.log('Token expirado, re-autenticando silenciosamente...');
+            return new Promise((resolve) => {
+                const tokenClient = google.accounts.oauth2.initTokenClient({
+                    client_id: CONFIG.CLIENT_ID,
+                    scope: CONFIG.SCOPES,
+                    prompt: '', // Silent re-auth
+                    callback: async (response) => {
+                        if (!response.error) {
+                            localStorage.setItem('google_access_token', response.access_token);
+                            gapi.client.setToken({ access_token: response.access_token });
+                            this.setTokenExpiration();
+                            console.log('✅ Re-autenticación exitosa');
+                            resolve(true);
+                        } else {
+                            console.error('Error en re-autenticación:', response.error);
+                            this.forceLogout();
+                            resolve(false);
+                        }
+                    }
+                });
+                tokenClient.requestAccessToken();
+            });
+        }
+        return true; // Token still valid
+    }
+
+    static forceLogout() {
+        this.isSignedIn = false;
+        this.showLoginScreen();
+        showToast('Tu sesión expiró. Por favor, inicia sesión nuevamente.', 'warning');
     }
 
     static checkStoredAuth() {

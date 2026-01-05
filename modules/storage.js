@@ -2,6 +2,8 @@
 // Uses Google Drive as primary storage with localStorage as cache
 
 import GoogleDriveStorage from './google-drive-storage.js';
+import GoogleCalendarAPI from './google-calendar-api.js';
+import { showToast } from '../app.js';
 
 const STORAGE_KEYS = {
     PATIENTS: 'mindcare_patients',
@@ -20,6 +22,26 @@ class Storage {
 
     static syncQueue = [];
     static isSyncing = false;
+
+    // Validate authentication before critical operations
+    static async ensureAuthenticated() {
+        if (!GoogleCalendarAPI.isSignedIn) {
+            showToast('Debes iniciar sesión para guardar cambios', 'error');
+            GoogleCalendarAPI.forceLogout();
+            throw new Error('NO_AUTH');
+        }
+
+        // Check if token is valid
+        if (!GoogleCalendarAPI.isTokenValid()) {
+            // Try to re-authenticate
+            const success = await GoogleCalendarAPI.reAuthenticate();
+            if (!success) {
+                showToast('Sesión expirada. Por favor inicia sesión nuevamente.', 'error');
+                throw new Error('AUTH_EXPIRED');
+            }
+        }
+        return true;
+    }
 
     // Clear in-memory cache to force reload from Drive
     static clearCache() {
@@ -57,13 +79,25 @@ class Storage {
     }
 
     static async savePatients(patients) {
-        // Update memory cache immediately for instant UI response
-        this.cache.patients = patients;
-        localStorage.setItem(STORAGE_KEYS.PATIENTS, JSON.stringify(patients));
+        try {
+            // Validate authentication before saving
+            await this.ensureAuthenticated();
 
-        // Queue background sync to Drive
-        this.queueSync('patients', patients);
-        return patients;
+            // Update memory cache immediately for instant UI response
+            this.cache.patients = patients;
+            localStorage.setItem(STORAGE_KEYS.PATIENTS, JSON.stringify(patients));
+
+            // Queue background sync to Drive
+            this.queueSync('patients', patients);
+            return patients;
+        } catch (error) {
+            if (error.message === 'NO_AUTH' || error.message === 'AUTH_EXPIRED') {
+                // Error already shown by ensureAuthenticated
+                throw error;
+            }
+            console.error('Error guardando pacientes:', error);
+            throw error;
+        }
     }
 
     static async addPatient(patient) {
@@ -127,13 +161,25 @@ class Storage {
     }
 
     static async saveAppointments(appointments) {
-        // Update memory cache immediately for instant UI response
-        this.cache.appointments = appointments;
-        localStorage.setItem(STORAGE_KEYS.APPOINTMENTS, JSON.stringify(appointments));
+        try {
+            // Validate authentication before saving
+            await this.ensureAuthenticated();
 
-        // Queue background sync to Drive
-        this.queueSync('appointments', appointments);
-        return appointments;
+            // Update memory cache immediately for instant UI response
+            this.cache.appointments = appointments;
+            localStorage.setItem(STORAGE_KEYS.APPOINTMENTS, JSON.stringify(appointments));
+
+            // Queue background sync to Drive
+            this.queueSync('appointments', appointments);
+            return appointments;
+        } catch (error) {
+            if (error.message === 'NO_AUTH' || error.message === 'AUTH_EXPIRED') {
+                // Error already shown by ensureAuthenticated
+                throw error;
+            }
+            console.error('Error guardando citas:', error);
+            throw error;
+        }
     }
 
     static async addAppointment(appointment) {
