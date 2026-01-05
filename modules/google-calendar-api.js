@@ -224,10 +224,26 @@ class GoogleCalendarAPI {
 
             // Validate token before allowing access
             if (!this.isTokenValid()) {
-                console.log('⚠️ Token expirado detectado en checkStoredAuth, limpiando sesión...');
-                this.clearAuth();
-                this.showLoginScreen();
-                showToast('Sesión expirada. Por favor, inicia sesión nuevamente.', 'warning');
+                console.log('⚠️ Token expirado detectado, intentando renovación silenciosa...');
+
+                // Try silent re-authentication
+                this.attemptSilentReauth().then(success => {
+                    if (success) {
+                        console.log('✅ Token renovado exitosamente');
+                        this.isSignedIn = true;
+                        this.updateUIAfterSignIn();
+                        this.hideLoginScreen();
+
+                        setTimeout(() => {
+                            window.dispatchEvent(new CustomEvent('google-signin-success'));
+                        }, 1000);
+                    } else {
+                        console.log('❌ Renovación fallida, requiere login manual');
+                        this.clearAuth();
+                        this.showLoginScreen();
+                        showToast('Sesión expirada. Por favor, inicia sesión nuevamente.', 'warning');
+                    }
+                });
                 return;
             }
 
@@ -245,6 +261,41 @@ class GoogleCalendarAPI {
             console.log('❌ No hay credenciales guardadas, mostrando login');
             this.showLoginScreen();
         }
+    }
+
+    // Attempt silent re-authentication (used when token expires)
+    static async attemptSilentReauth() {
+        return new Promise((resolve) => {
+            try {
+                const tokenClient = google.accounts.oauth2.initTokenClient({
+                    client_id: CONFIG.CLIENT_ID,
+                    scope: CONFIG.SCOPES,
+                    prompt: '', // Empty prompt = silent re-auth
+                    callback: async (response) => {
+                        if (response.error) {
+                            console.error('Error en renovación silenciosa:', response.error);
+                            resolve(false);
+                            return;
+                        }
+
+                        // Save new token
+                        localStorage.setItem('google_access_token', response.access_token);
+                        gapi.client.setToken({ access_token: response.access_token });
+                        this.setTokenExpiration();
+
+                        // Get user info
+                        await this.getUserInfo();
+
+                        console.log('🔄 Token renovado silenciosamente');
+                        resolve(true);
+                    },
+                });
+                tokenClient.requestAccessToken();
+            } catch (error) {
+                console.error('Error en attemptSilentReauth:', error);
+                resolve(false);
+            }
+        });
     }
 
     static hideLoginScreen() {
