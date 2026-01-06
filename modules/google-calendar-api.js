@@ -445,12 +445,22 @@ class GoogleCalendarAPI {
                 }
             }
 
+            // Extraer estado de respuesta del asistente
+            let attendeeStatus = 'needsAction'; // Default
+            if (response.result.attendees && response.result.attendees.length > 0) {
+                const attendee = response.result.attendees.find(a => a.email === patient.email);
+                if (attendee) {
+                    attendeeStatus = attendee.responseStatus || 'needsAction';
+                }
+            }
+
             // Guardar el ID del evento de Google en el appointment
             return {
                 googleEventId: response.result.id,
                 htmlLink: response.result.htmlLink,
                 meetLink: meetLink,
-                status: response.result.status
+                status: response.result.status,
+                attendeeStatus: attendeeStatus
             };
 
         } catch (error) {
@@ -567,6 +577,28 @@ class GoogleCalendarAPI {
 
         } catch (error) {
             console.error('Error obteniendo asistentes:', error);
+            return null;
+        }
+    }
+
+    // Get attendee response status for a specific event and email
+    static async getAttendeeStatus(googleEventId, patientEmail) {
+        if (!this.isSignedIn) return null;
+
+        try {
+            const response = await gapi.client.calendar.events.get({
+                calendarId: 'primary',
+                eventId: googleEventId
+            });
+
+            const attendee = response.result.attendees?.find(
+                a => a.email === patientEmail
+            );
+
+            return attendee?.responseStatus || 'needsAction';
+
+        } catch (error) {
+            console.error('Error obteniendo estado de asistente:', error);
             return null;
         }
     }

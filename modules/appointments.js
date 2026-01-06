@@ -44,6 +44,19 @@ class Appointments {
         });
     }
 
+    static getAttendeeStatusBadge(status) {
+        if (!status || status === 'needsAction') {
+            return `<span class="appointment-badge" style="background: #FFA500; color: white;" title="Pendiente de respuesta">🟡 Pendiente</span>`;
+        } else if (status === 'accepted') {
+            return `<span class="appointment-badge" style="background: #10b981; color: white;" title="Invitación aceptada">✅ Aceptada</span>`;
+        } else if (status === 'declined') {
+            return `<span class="appointment-badge" style="background: #ef4444; color: white;" title="Invitación rechazada">❌ Rechazada</span>`;
+        } else if (status === 'tentative') {
+            return `<span class="appointment-badge" style="background: #f59e0b; color: white;" title="Respuesta tentativa">⚠️ Tal vez</span>`;
+        }
+        return '';
+    }
+
     static async openAppointmentModal(appointmentId = null) {
         const modal = document.getElementById('appointment-modal');
         const form = document.getElementById('patient-form');
@@ -261,10 +274,21 @@ class Appointments {
                     </div>
                     <div class="appointment-actions">
                         ${appointment.googleEventId ? `
-                            <!-- Cita sincronizada con Google - solo mostrar badge -->
-                            <span class="appointment-badge" style="background: #4285F4; color: white;" title="Sincronizado con Google Calendar - Los recordatorios se envían automáticamente">
-                                ✓ Sincronizado con Google
-                            </span>
+                            <!-- Cita sincronizada con Google -->
+                            <div style="display: flex; flex-direction: column; gap: 0.5rem; width: 100%;">
+                                <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+                                    <span class="appointment-badge" style="background: #4285F4; color: white;" title="Sincronizado con Google Calendar">
+                                        ✓ Sincronizado
+                                    </span>
+                                    ${this.getAttendeeStatusBadge(appointment.attendeeStatus)}
+                                    <button class="btn btn-sm btn-secondary" onclick="window.appointmentsModule.refreshAttendeeStatus('${appointment.id}')" title="Actualizar estado de respuesta">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 14px; height: 14px;">
+                                            <polyline points="23 4 23 10 17 10"></polyline>
+                                            <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+                                        </svg>
+                                    </button>
+                                </div>
+                            </div>
                         ` : `
                             <!-- Cita NO sincronizada - mostrar opciones de sincronización manual -->
                             ${appointment.type === 'virtual' && appointment.meetLink ? `
@@ -392,13 +416,37 @@ class Appointments {
         const result = await GoogleCalendarAPI.createEvent(appointment, patient);
 
         if (result) {
-            // Guardar el ID del evento de Google en el appointment
+            // Guardar el ID del evento de Google y el estado de respuesta del asistente
             await Storage.updateAppointment(appointmentId, {
                 googleEventId: result.googleEventId,
-                googleEventLink: result.htmlLink
+                googleEventLink: result.htmlLink,
+                attendeeStatus: result.attendeeStatus || 'needsAction'
             });
 
             showToast('✓ Cita sincronizada con Google Calendar', 'success');
+            await this.renderAppointmentsList();
+        }
+    }
+
+    static async refreshAttendeeStatus(appointmentId) {
+        const appointment = await Storage.getAppointmentById(appointmentId);
+
+        if (!appointment.googleEventId) {
+            showToast('Esta cita no está sincronizada con Google Calendar', 'error');
+            return;
+        }
+
+        const patient = await Storage.getPatientById(appointment.patientId);
+        const status = await GoogleCalendarAPI.getAttendeeStatus(
+            appointment.googleEventId,
+            patient.email
+        );
+
+        if (status) {
+            await Storage.updateAppointment(appointmentId, {
+                attendeeStatus: status
+            });
+            showToast('Estado actualizado', 'success');
             await this.renderAppointmentsList();
         }
     }
