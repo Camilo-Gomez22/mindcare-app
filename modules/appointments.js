@@ -470,7 +470,7 @@ class Appointments {
             return;
         }
 
-        showToast(+"Actualizando ${syncedAppointments.length} cita(s)..."+", 'info');
+        showToast(`Actualizando ${syncedAppointments.length} cita(s)...`, 'info');
         let updated = 0;
 
         for (const appointment of syncedAppointments) {
@@ -490,7 +490,7 @@ class Appointments {
             }
         }
 
-        showToast(+" ${updated} estado(s) actualizado(s)"+", 'success');
+        showToast(`✓ ${updated} estado(s) actualizado(s)`, 'success');
         await this.renderAppointmentsList();
     }
 }
