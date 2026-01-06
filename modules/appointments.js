@@ -280,19 +280,11 @@ class Appointments {
                     <div class="appointment-actions">
                         ${appointment.googleEventId ? `
                             <!-- Cita sincronizada con Google -->
-                            <div style="display: flex; flex-direction: column; gap: 0.5rem; width: 100%;">
-                                <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
-                                    <span class="appointment-badge" style="background: #4285F4; color: white;" title="Sincronizado con Google Calendar">
-                                        ✓ Sincronizado
-                                    </span>
-                                    ${this.getAttendeeStatusBadge(appointment.attendeeStatus)}
-                                    <button class="btn btn-sm btn-secondary" onclick="window.appointmentsModule.refreshAttendeeStatus('${appointment.id}')" title="Actualizar estado de respuesta">
-                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 14px; height: 14px;">
-                                            <polyline points="23 4 23 10 17 10"></polyline>
-                                            <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
-                                        </svg>
-                                    </button>
-                                </div>
+                            <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+                                <span class="appointment-badge" style="background: #4285F4; color: white;" title="Sincronizado con Google Calendar">
+                                    ✓ Sincronizado
+                                </span>
+                                ${this.getAttendeeStatusBadge(appointment.attendeeStatus)}
                             </div>
                         ` : `
                             <!-- Cita NO sincronizada - mostrar opciones de sincronización manual -->
