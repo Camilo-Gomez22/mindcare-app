@@ -459,6 +459,40 @@ class Appointments {
             await this.renderAppointmentsList();
         }
     }
+
+
+    static async refreshAllAttendeeStatuses() {
+        const appointments = await Storage.getAppointments();
+        const syncedAppointments = appointments.filter(apt => apt.googleEventId);
+
+        if (syncedAppointments.length === 0) {
+            showToast('No hay citas sincronizadas con Google Calendar', 'info');
+            return;
+        }
+
+        showToast(+"Actualizando ${syncedAppointments.length} cita(s)..."+", 'info');
+        let updated = 0;
+
+        for (const appointment of syncedAppointments) {
+            const patient = await Storage.getPatientById(appointment.patientId);
+            if (!patient || !patient.email) continue;
+
+            const status = await GoogleCalendarAPI.getAttendeeStatus(
+                appointment.googleEventId,
+                patient.email
+            );
+
+            if (status) {
+                await Storage.updateAppointment(appointment.id, {
+                    attendeeStatus: status
+                });
+                updated++;
+            }
+        }
+
+        showToast(+" ${updated} estado(s) actualizado(s)"+", 'success');
+        await this.renderAppointmentsList();
+    }
 }
 
 export default Appointments;
