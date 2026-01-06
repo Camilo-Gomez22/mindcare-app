@@ -43,10 +43,6 @@ class Appointments {
             this.renderAppointmentsList();
         });
 
-        document.getElementById('appointment-date-filter').addEventListener('change', () => {
-            this.renderAppointmentsList();
-        });
-
         // Refresh all attendee statuses button
         document.getElementById('refresh-all-statuses-btn').addEventListener('click', async () => {
             await this.refreshAllAttendeeStatuses();
