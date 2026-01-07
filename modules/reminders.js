@@ -14,9 +14,16 @@ class Reminders {
     }
 
     static getTomorrowDate() {
-        const tomorrow = new Date();
-        tomorrow.setDate(tomorrow.getDate() + 1);
-        return tomorrow.toISOString().split('T')[0];
+        const today = new Date();
+        const tomorrow = new Date(today);
+        tomorrow.setDate(today.getDate() + 1);
+
+        // Manual formatting to avoid UTC conversion issues
+        const year = tomorrow.getFullYear();
+        const month = String(tomorrow.getMonth() + 1).padStart(2, '0');
+        const day = String(tomorrow.getDate()).padStart(2, '0');
+
+        return `${year}-${month}-${day}`;
     }
 
     static async renderRemindersList() {
@@ -42,7 +49,7 @@ class Reminders {
         if (pendingEl) pendingEl.textContent = tomorrowAppts.filter(a => !a.confirmationStatus || a.confirmationStatus === 'pending').length;
 
         if (tomorrowAppts.length === 0) {
-            container.innerHTML = '<p class="empty-state">No hay citas programadas para mañana</p>';
+            container.innerHTML = '<p class="empty-state">No hay citas programadas para ma\u00f1ana</p>';
             return;
         }
 
@@ -72,7 +79,7 @@ class Reminders {
                     </div>
                     
                     <div class="reminder-info">
-                        <div>📱 ${patient.phone || 'Sin teléfono'}</div>
+                        <div>📱 ${patient.phone || 'Sin tel\u00e9fono'}</div>
                         ${appointment.notes ? `<div>📝 ${appointment.notes}</div>` : ''}
                     </div>
 
@@ -84,7 +91,7 @@ class Reminders {
                                 </svg>
                                 Enviar
                             </button>
-                        ` : '<span style="color: var(--gray-400);">Sin teléfono</span>'}
+                        ` : '<span style="color: var(--gray-400);">Sin tel\u00e9fono</span>'}
                         
                         ${status !== 'confirmed' ? `
                             <button class="btn btn-sm btn-success" onclick="window.remindersModule.markConfirmed('${appointment.id}')">
@@ -94,7 +101,7 @@ class Reminders {
                         
                         ${status !== 'no_confirmation' ? `
                             <button class="btn btn-sm btn-secondary" onclick="window.remindersModule.markNoConfirmation('${appointment.id}')">
-                                ⚠️ No Confirmó
+                                ⚠️ No Confirm\u00f3
                             </button>
                         ` : ''}
                         
@@ -117,8 +124,8 @@ class Reminders {
             'pending': '<span class="status-badge status-pending">🟡 Pendiente</span>',
             'sent': '<span class="status-badge status-sent">📤 Enviado</span>',
             'confirmed': '<span class="status-badge status-confirmed">✅ Confirmado</span>',
-            'no_confirmation': '<span class="status-badge status-no-confirmation">⚠️ No Confirmó</span>',
-            'cancelled': '<span class="status-badge status-cancelled">❌ Canceló</span>'
+            'no_confirmation': '<span class="status-badge status-no-confirmation">⚠️ No Confirm\u00f3</span>',
+            'cancelled': '<span class="status-badge status-cancelled">❌ Cancel\u00f3</span>'
         };
         return badges[status] || badges['pending'];
     }
@@ -134,13 +141,18 @@ class Reminders {
 
         // Format date nicely
         const date = new Date(appointment.date);
-        const formattedDate = date.toLocaleDateString('es-ES', {
+        // Fix date object being created in UTC midnight which might be previous day in local time
+        // Create date using split parts to ensure local time interpretation
+        const [year, month, day] = appointment.date.split('-').map(Number);
+        const localDate = new Date(year, month - 1, day);
+
+        const formattedDate = localDate.toLocaleDateString('es-ES', {
             weekday: 'long',
             day: 'numeric',
             month: 'long'
         });
 
-        const message = `Hola ${patient.firstname}, te recordamos tu cita de mañana ${formattedDate} a las ${appointment.time}. ¿Puedes confirmar tu asistencia? Gracias 😊`;
+        const message = `Hola ${patient.firstname}, te recordamos tu cita de ma\u00f1ana ${formattedDate} a las ${appointment.time}. \u00bfPuedes confirmar tu asistencia? Gracias 😊`;
 
         // Clean phone number (remove spaces, dashes, etc.)
         const cleanPhone = patient.phone.replace(/[^0-9]/g, '');
@@ -177,7 +189,7 @@ class Reminders {
     }
 
     static async markCancelled(appointmentId) {
-        if (confirm('¿Marcar esta cita como cancelada?')) {
+        if (confirm('\u00bfMarcar esta cita como cancelada?')) {
             await Storage.updateAppointment(appointmentId, {
                 confirmationStatus: 'cancelled'
             });
