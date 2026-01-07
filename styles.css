@@ -1104,3 +1104,124 @@ textarea.form-control {
         width: 100%;
     }
 }
+/* Reminders Section Styles */
+.reminders-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+    gap: var(--spacing-lg);
+    margin-top: var(--spacing-lg);
+}
+
+.reminder-card {
+    background: var(--white);
+    border-radius: var(--radius-lg);
+    padding: var(--spacing-lg);
+    box-shadow: var(--shadow-sm);
+    border: 1px solid var(--gray-200);
+    transition: all 0.3s ease;
+}
+
+.reminder-card:hover {
+    box-shadow: var(--shadow-md);
+    transform: translateY(-2px);
+}
+
+.reminder-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: start;
+    margin-bottom: var(--spacing-md);
+    padding-bottom: var(--spacing-md);
+    border-bottom: 1px solid var(--gray-200);
+}
+
+.reminder-header h3 {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--gray-900);
+    margin: 0 0 var(--spacing-xs) 0;
+}
+
+.reminder-time {
+    font-size: 0.9rem;
+    color: var(--gray-600);
+    margin: var(--spacing-xs) 0;
+}
+
+.reminder-type {
+    margin: var(--spacing-xs) 0;
+}
+
+.reminder-info {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xs);
+    margin-bottom: var(--spacing-md);
+    font-size: 0.9rem;
+    color: var(--gray-700);
+}
+
+.reminder-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--spacing-sm);
+}
+
+.reminder-actions .btn {
+    flex: 1;
+    min-width: 120px;
+    justify-content: center;
+    font-size: 0.85rem;
+    padding: var(--spacing-sm) var(--spacing-md);
+}
+
+/* Status Badges */
+.status-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: var(--spacing-xs) var(--spacing-sm);
+    border-radius: var(--radius-md);
+    font-size: 0.85rem;
+    font-weight: 500;
+    white-space: nowrap;
+}
+
+.status-pending {
+    background: #fef3c7;
+    color: #92400e;
+}
+
+.status-sent {
+    background: #dbeafe;
+    color: #1e40af;
+}
+
+.status-confirmed {
+    background: #d1fae5;
+    color: #065f46;
+}
+
+.status-no-confirmation {
+    background: #fed7aa;
+    color: #9a3412;
+}
+
+.status-cancelled {
+    background: #fee2e2;
+    color: #991b1b;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .reminders-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .reminder-actions {
+        flex-direction: column;
+    }
+    
+    .reminder-actions .btn {
+        width: 100%;
+    }
+}

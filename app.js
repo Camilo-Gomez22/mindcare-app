@@ -5,6 +5,7 @@ import Patients from './modules/patients.js';
 import Appointments from './modules/appointments.js';
 import Payments from './modules/payments.js';
 import Reports from './modules/reports.js';
+import Reminders from './modules/reminders.js';
 import GoogleCalendarAPI from './modules/google-calendar-api.js';
 import Settings from './modules/settings.js';
 
@@ -20,6 +21,7 @@ class App {
         Appointments.init();
         Payments.init();
         Reports.init();
+        Reminders.init();
         await Settings.init();
 
         // Setup navigation
@@ -33,6 +35,7 @@ class App {
         window.appointmentsModule = Appointments;
         window.paymentsModule = Payments;
         window.reportsModule = Reports;
+        window.remindersModule = Reminders;
 
         // Setup session monitoring
         this.setupSessionMonitoring();
@@ -126,46 +129,8 @@ class App {
     }
 
     static async checkAndMigrateData() {
-        const migrated = localStorage.getItem('drive_migrated');
-        if (!migrated && GoogleCalendarAPI.isSignedIn) {
-            try {
-                console.log('🔄 Migrando datos a Drive...');
-                await this.migrateToDriver();
-                localStorage.setItem('drive_migrated', 'true');
-                console.log('✅ Migración completada');
-            } catch (error) {
-                console.error('Error durante migración:', error);
-            }
-        }
-    }
-
-    static async migrateToDriver() {
-        // Leer datos de localStorage
-        const patientsData = localStorage.getItem('mindcare_patients');
-        const appointmentsData = localStorage.getItem('mindcare_appointments');
-
-        if (patientsData || appointmentsData) {
-            // Inicializar Drive folder
-            await GoogleDriveStorage.initDriveFolder();
-
-            // Migrar pacientes si existen
-            if (patientsData) {
-                const patients = JSON.parse(patientsData);
-                if (patients.length > 0) {
-                    await GoogleDriveStorage.saveData('patients.json', patients);
-                    console.log(`Migrados ${patients.length} pacientes`);
-                }
-            }
-
-            // Migrar citas si existen
-            if (appointmentsData) {
-                const appointments = JSON.parse(appointmentsData);
-                if (appointments.length > 0) {
-                    await GoogleDriveStorage.saveData('appointments.json', appointments);
-                    console.log(`Migradas ${appointments.length} citas`);
-                }
-            }
-        }
+        // Migration logic disabled - data is automatically stored in Google Drive
+        console.log('✅ Using modern Google Drive storage');
     }
 
     static setupNavigation() {
@@ -211,6 +176,9 @@ class App {
                 break;
             case 'reports':
                 // Reports are generated on demand
+                break;
+            case 'reminders':
+                Reminders.renderRemindersList();
                 break;
         }
     }
