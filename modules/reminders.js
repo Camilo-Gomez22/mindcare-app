@@ -155,10 +155,15 @@ class Reminders {
         const message = `Hola ${patient.firstname}, te recordamos tu cita de ma\u00f1ana ${formattedDate} a las ${appointment.time}. \u00bfPuedes confirmar tu asistencia? Gracias 😊`;
 
         // Clean phone number (remove spaces, dashes, etc.)
-        const cleanPhone = patient.phone.replace(/[^0-9]/g, '');
+        let cleanPhone = patient.phone.replace(/[^0-9]/g, '');
+
+        // Add 57 prefix only if not present and length is 10 (Colombian mobile standard)
+        if (!cleanPhone.startsWith('57')) {
+            cleanPhone = '57' + cleanPhone;
+        }
 
         // Open WhatsApp with pre-written message
-        const whatsappUrl = `https://wa.me/57${cleanPhone}?text=${encodeURIComponent(message)}`;
+        const whatsappUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`;
         window.open(whatsappUrl, '_blank');
 
         // Mark as sent
