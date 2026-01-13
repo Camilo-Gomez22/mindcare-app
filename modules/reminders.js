@@ -155,10 +155,13 @@ class Reminders {
             // Clean phone number
             let cleanPhone = String(patient.phone).replace(/[^0-9]/g, '');
 
-            // Add 57 prefix only if not present
-            if (!cleanPhone.startsWith('57')) {
+            // Logic for International Numbers:
+            // 1. If length is 10, assume it's a local Colombian number (310...) -> Add 57
+            // 2. If length > 10, assume user included country code (e.g. 1305... or 57310...) -> Keep as is
+            if (cleanPhone.length === 10) {
                 cleanPhone = '57' + cleanPhone;
             }
+            // If length < 10, it's likely invalid but we try sending as is or let WhatsApp handle it
 
             // Open WhatsApp
             const whatsappUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`;
