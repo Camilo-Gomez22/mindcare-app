@@ -102,10 +102,25 @@ class Storage {
 
     static async addPatient(patient) {
         const patients = await this.getPatients();
+
+        // Extra safeguard: Check for potential duplicates by name and phone
+        const isDuplicate = patients.some(p =>
+            p.firstname === patient.firstname &&
+            p.lastname === patient.lastname &&
+            p.phone === patient.phone &&
+            p.startDate === patient.startDate
+        );
+
+        if (isDuplicate) {
+            console.warn('⚠️ Paciente potencialmente duplicado detectado, abortando creación');
+            throw new Error('Ya existe un paciente con el mismo nombre, teléfono y fecha de inicio');
+        }
+
         patient.id = this.generateId();
         patient.createdAt = new Date().toISOString();
         patients.push(patient);
         await this.savePatients(patients);
+        console.log('💾 Paciente guardado en Storage con ID:', patient.id);
         return patient;
     }
 
