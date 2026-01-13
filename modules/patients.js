@@ -4,6 +4,8 @@ import Storage from './storage.js';
 import { showToast } from '../app.js';
 
 class Patients {
+    static isSaving = false; // Flag to prevent double-submit
+
     static init() {
         this.setupEventListeners();
         this.renderPatientsList().catch(err => console.error('Error rendering patients:', err));
@@ -86,6 +88,13 @@ class Patients {
     }
 
     static async savePatient() {
+        // Prevent double-submit
+        if (this.isSaving) {
+            console.warn('⚠️ Guardado ya en proceso, ignorando submit duplicado');
+            return;
+        }
+
+        const saveBtn = document.querySelector('#patient-form button[type="submit"]');
         const id = document.getElementById('patient-id').value;
         const patientData = {
             firstname: document.getElementById('patient-firstname').value.trim(),
@@ -99,11 +108,21 @@ class Patients {
         };
 
         try {
+            // Set saving flag and disable button
+            this.isSaving = true;
+            if (saveBtn) {
+                saveBtn.disabled = true;
+                saveBtn.textContent = 'Guardando...';
+            }
+
             if (id) {
+                console.log('📝 Actualizando paciente:', id);
                 await Storage.updatePatient(id, patientData);
                 showToast('Paciente actualizado exitosamente', 'success');
             } else {
-                await Storage.addPatient(patientData);
+                console.log('✨ Creando nuevo paciente:', patientData);
+                const created = await Storage.addPatient(patientData);
+                console.log('✅ Paciente creado con ID:', created.id);
                 showToast('Paciente agregado exitosamente', 'success');
             }
 
@@ -115,8 +134,15 @@ class Patients {
                 await module.default.updatePatientSelect();
             });
         } catch (error) {
-            console.error('Error guardando paciente:', error);
+            console.error('❌ Error guardando paciente:', error);
             showToast('Error al guardar paciente: ' + error.message, 'error');
+        } finally {
+            // Reset flag and button state
+            this.isSaving = false;
+            if (saveBtn) {
+                saveBtn.disabled = false;
+                saveBtn.textContent = 'Guardar Paciente';
+            }
         }
     }
 
@@ -181,7 +207,11 @@ class Patients {
                             </div>
                             <div class="patient-card-info">
                                 <span class="info-label">📅 Inicio:</span>
-                                <span class="info-value">${new Date(patient.startDate).toLocaleDateString('es-ES')}</span>
+                                <span class="info-value">${(() => {
+                        const [year, month, day] = patient.startDate.split('-').map(Number);
+                        const localDate = new Date(year, month - 1, day);
+                        return localDate.toLocaleDateString('es-ES');
+                    })()}</span>
                             </div>
                             <div class="patient-card-info">
                                 <span class="info-label">💰 Estado:</span>
@@ -239,7 +269,11 @@ class Patients {
                         <td><strong>${patient.firstname} ${patient.lastname}</strong></td>
                         <td>${patient.email || '-'}</td>
                         <td>${patient.phone || '-'}</td>
-                        <td>${new Date(patient.startDate).toLocaleDateString('es-ES')}</td>
+                        <td>${(() => {
+                        const [year, month, day] = patient.startDate.split('-').map(Number);
+                        const localDate = new Date(year, month - 1, day);
+                        return localDate.toLocaleDateString('es-ES');
+                    })()}</td>
                         <td><span class="appointment-badge badge-${patient.preferredType}">${patient.preferredType}</span></td>
                         <td style="${debtClass}"><strong>${debtDisplay}</strong></td>
                         <td>
