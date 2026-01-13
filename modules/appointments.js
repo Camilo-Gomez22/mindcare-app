@@ -8,9 +8,13 @@ import { showToast } from '../app.js';
 
 class Appointments {
     static isSaving = false; // Flag to prevent double-submit
+    static listenersInitialized = false; // Flag to prevent duplicate event listeners
 
     static init() {
-        this.setupEventListeners();
+        if (!this.listenersInitialized) {
+            this.setupEventListeners();
+            this.listenersInitialized = true;
+        }
         this.updatePatientSelect().catch(err => console.error('Error updating patients:', err));
         this.renderAppointmentsList().catch(err => console.error('Error rendering appointments:', err));
     }

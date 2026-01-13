@@ -5,9 +5,13 @@ import { showToast } from '../app.js';
 
 class Patients {
     static isSaving = false; // Flag to prevent double-submit
+    static listenersInitialized = false; // Flag to prevent duplicate event listeners
 
     static init() {
-        this.setupEventListeners();
+        if (!this.listenersInitialized) {
+            this.setupEventListeners();
+            this.listenersInitialized = true;
+        }
         this.renderPatientsList().catch(err => console.error('Error rendering patients:', err));
     }
 
