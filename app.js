@@ -113,7 +113,7 @@ class App {
             await App.updateDashboard();
             if (window.patientsModule) await patientsModule.renderPatientsList();
             if (window.appointmentsModule) await appointmentsModule.renderAppointmentsList();
-            if (window.reportsModule) await reportsModule.updateReports();
+            if (window.reportsModule) await reportsModule.generateReport();
         });
     }
 
