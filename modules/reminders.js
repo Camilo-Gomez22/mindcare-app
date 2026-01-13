@@ -131,49 +131,55 @@ class Reminders {
     }
 
     static async sendWhatsAppReminder(appointmentId) {
-        const appointment = await Storage.getAppointmentById(appointmentId);
-        const patient = await Storage.getPatientById(appointment.patientId);
+        try {
+            const appointment = await Storage.getAppointmentById(appointmentId);
+            const patient = await Storage.getPatientById(appointment.patientId);
 
-        if (!patient.phone) {
-            showToast('El paciente no tiene número de teléfono registrado', 'error');
-            return;
+            if (!patient || !patient.phone) {
+                showToast('El paciente no tiene número de teléfono registrado', 'error');
+                return;
+            }
+
+            // Format date nicely
+            const [year, month, day] = appointment.date.split('-').map(Number);
+            const localDate = new Date(year, month - 1, day);
+
+            const formattedDate = localDate.toLocaleDateString('es-ES', {
+                weekday: 'long',
+                day: 'numeric',
+                month: 'long'
+            });
+
+            const message = `Hola ${patient.firstname}, te recordamos tu cita de ma\u00f1ana ${formattedDate} a las ${appointment.time}. \u00bfPuedes confirmar tu asistencia? Gracias 😊`;
+
+            // Clean phone number
+            let cleanPhone = String(patient.phone).replace(/[^0-9]/g, '');
+
+            // Add 57 prefix only if not present
+            if (!cleanPhone.startsWith('57')) {
+                cleanPhone = '57' + cleanPhone;
+            }
+
+            // Open WhatsApp
+            const whatsappUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`;
+            const newWindow = window.open(whatsappUrl, '_blank');
+
+            if (!newWindow || newWindow.closed || typeof newWindow.closed == 'undefined') {
+                showToast('El navegador bloqueó la ventana emergente. Por favor permite pop-ups.', 'warning');
+            }
+
+            // Mark as sent
+            await Storage.updateAppointment(appointmentId, {
+                confirmationStatus: 'sent',
+                reminderSentDate: new Date().toISOString()
+            });
+
+            showToast('WhatsApp abierto. Recordatorio marcado como enviado.', 'success');
+            await this.renderRemindersList();
+        } catch (error) {
+            console.error('Error sending reminder:', error);
+            showToast('Error al enviar recordatorio: ' + error.message, 'error');
         }
-
-        // Format date nicely
-        const date = new Date(appointment.date);
-        // Fix date object being created in UTC midnight which might be previous day in local time
-        // Create date using split parts to ensure local time interpretation
-        const [year, month, day] = appointment.date.split('-').map(Number);
-        const localDate = new Date(year, month - 1, day);
-
-        const formattedDate = localDate.toLocaleDateString('es-ES', {
-            weekday: 'long',
-            day: 'numeric',
-            month: 'long'
-        });
-
-        const message = `Hola ${patient.firstname}, te recordamos tu cita de ma\u00f1ana ${formattedDate} a las ${appointment.time}. \u00bfPuedes confirmar tu asistencia? Gracias 😊`;
-
-        // Clean phone number (remove spaces, dashes, etc.)
-        let cleanPhone = patient.phone.replace(/[^0-9]/g, '');
-
-        // Add 57 prefix only if not present and length is 10 (Colombian mobile standard)
-        if (!cleanPhone.startsWith('57')) {
-            cleanPhone = '57' + cleanPhone;
-        }
-
-        // Open WhatsApp with pre-written message
-        const whatsappUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`;
-        window.open(whatsappUrl, '_blank');
-
-        // Mark as sent
-        await Storage.updateAppointment(appointmentId, {
-            confirmationStatus: 'sent',
-            reminderSentDate: new Date().toISOString()
-        });
-
-        showToast('WhatsApp abierto. Recordatorio marcado como enviado.', 'success');
-        await this.renderRemindersList();
     }
 
     static async markConfirmed(appointmentId) {
