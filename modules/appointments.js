@@ -195,8 +195,8 @@ class Appointments {
         switch (dateFilter) {
             case 'today':
                 appointments = appointments.filter(a => {
-                    const aptDate = new Date(a.date);
-                    aptDate.setHours(0, 0, 0, 0);
+                    const [year, month, day] = a.date.split('-').map(Number);
+                    const aptDate = new Date(year, month - 1, day);
                     return aptDate.getTime() === today.getTime();
                 });
                 break;
@@ -204,7 +204,8 @@ class Appointments {
                 const weekEnd = new Date(today);
                 weekEnd.setDate(today.getDate() + 7);
                 appointments = appointments.filter(a => {
-                    const aptDate = new Date(a.date);
+                    const [year, month, day] = a.date.split('-').map(Number);
+                    const aptDate = new Date(year, month - 1, day);
                     return aptDate >= today && aptDate <= weekEnd;
                 });
                 break;
@@ -212,7 +213,8 @@ class Appointments {
                 const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
                 const monthEnd = new Date(today.getFullYear(), today.getMonth() + 1, 0);
                 appointments = appointments.filter(a => {
-                    const aptDate = new Date(a.date);
+                    const [year, month, day] = a.date.split('-').map(Number);
+                    const aptDate = new Date(year, month - 1, day);
                     return aptDate >= monthStart && aptDate <= monthEnd;
                 });
                 break;

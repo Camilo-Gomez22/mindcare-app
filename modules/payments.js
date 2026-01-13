@@ -66,8 +66,9 @@ class Payments {
                 const patient = await Storage.getPatientById(appointment.patientId);
                 if (!patient) continue;
 
-                const date = new Date(appointment.date);
-                const formattedDate = date.toLocaleDateString('es-ES', {
+                const [year, month, day] = appointment.date.split('-').map(Number);
+                const localDate = new Date(year, month - 1, day);
+                const formattedDate = localDate.toLocaleDateString('es-ES', {
                     day: 'numeric',
                     month: 'short',
                     year: 'numeric'
@@ -144,8 +145,9 @@ class Payments {
                 const patient = await Storage.getPatientById(appointment.patientId);
                 if (!patient) continue;
 
-                const date = new Date(appointment.date);
-                const formattedDate = date.toLocaleDateString('es-ES', {
+                const [year, month, day] = appointment.date.split('-').map(Number);
+                const localDate = new Date(year, month - 1, day);
+                const formattedDate = localDate.toLocaleDateString('es-ES', {
                     day: 'numeric',
                     month: 'short',
                     year: 'numeric'

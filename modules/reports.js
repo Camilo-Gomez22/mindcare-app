@@ -45,12 +45,20 @@ class Reports {
         const startDateInput = document.getElementById('report-start-date');
         const endDateInput = document.getElementById('report-end-date');
 
+        // Manual formatting for generic dates
+        const formatDateInput = (date) => {
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        };
+
         if (startDateInput) {
-            startDateInput.value = firstDay.toISOString().split('T')[0];
+            startDateInput.value = formatDateInput(firstDay);
         }
 
         if (endDateInput) {
-            endDateInput.value = lastDay.toISOString().split('T')[0];
+            endDateInput.value = formatDateInput(lastDay);
         }
 
         // Generate initial report
@@ -84,8 +92,14 @@ class Reports {
 
         // Filter appointments by date range
         const filteredAppointments = appointments.filter(apt => {
-            const aptDate = new Date(apt.date);
-            return aptDate >= startDate && aptDate <= endDate;
+            const [year, month, day] = apt.date.split('-').map(Number);
+            const aptDate = new Date(year, month - 1, day);
+
+            // Adjust start/end to local comparisons
+            const startLocal = new Date(startDateValue + 'T00:00:00');
+            const endLocal = new Date(endDateValue + 'T23:59:59');
+
+            return aptDate >= startLocal && aptDate <= endLocal;
         });
 
         if (filteredAppointments.length === 0) {
@@ -99,8 +113,8 @@ class Reports {
     }
 
     static async renderReport(appointments, startDate, endDate) {
-        const start = new Date(startDate);
-        const end = new Date(endDate);
+        const start = new Date(startDate + 'T00:00:00');
+        const end = new Date(endDate + 'T23:59:59');
 
         const formatDate = (date) => {
             return date.toLocaleDateString('es-ES', {
@@ -252,7 +266,8 @@ class Reports {
         // Patient details sheet with enhanced formatting
         const patientDetailsData = [
             ['REPORTE DE PERÍODO'],
-            [`Del ${formatDate(new Date(this.currentReportData.startDate))} al ${formatDate(new Date(this.currentReportData.endDate))}`],
+            ['REPORTE DE PERÍODO'],
+            [`Del ${formatDate(new Date(this.currentReportData.startDate + 'T00:00:00'))} al ${formatDate(new Date(this.currentReportData.endDate + 'T00:00:00'))}`],
             [], // Empty row
             ['Paciente', 'Sesiones', 'Pagado', 'Pendiente', 'Total']
         ];
@@ -306,7 +321,8 @@ class Reports {
 
         for (const apt of appointments) {
             const patient = await Storage.getPatientById(apt.patientId);
-            const date = new Date(apt.date);
+            const [year, month, day] = apt.date.split('-').map(Number);
+            const date = new Date(year, month - 1, day);
             appointmentsData.push([
                 date.toLocaleDateString('es-ES'),
                 apt.time,
