@@ -17,7 +17,7 @@
         rel="stylesheet">
 
     <!-- Stylesheet -->
-    <link rel="stylesheet" href="styles.css?v=2.4.3">
+    <link rel="stylesheet" href="styles.css?v=2.5.0">
     <link rel="stylesheet" href="login-styles.css">
 
     <!-- SheetJS for Excel Export -->
@@ -392,6 +392,8 @@
 
                 <div class="filter-bar">
                     <select id="appointment-filter" class="filter-select">
+                        <option value="upcoming" selected>Próximas</option>
+                        <option value="past">Pasadas</option>
                         <option value="all">Todas las citas</option>
                         <option value="today">Hoy</option>
                         <option value="week">Esta semana</option>
@@ -613,7 +615,7 @@
     <div id="toast" class="toast"></div>
 
     <!-- JavaScript Modules -->
-    <script type="module" src="app.js?v=2.4.3"></script>
+    <script type="module" src="app.js?v=2.5.0"></script>
 </body>
 
 </html>

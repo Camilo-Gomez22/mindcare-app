@@ -7,6 +7,8 @@ import GoogleCalendarAPI from './google-calendar-api.js';
 import { showToast } from '../app.js';
 
 class Appointments {
+    static isSaving = false; // Flag to prevent double-submit
+
     static init() {
         this.setupEventListeners();
         this.updatePatientSelect().catch(err => console.error('Error updating patients:', err));
@@ -99,6 +101,13 @@ class Appointments {
     }
 
     static async saveAppointment() {
+        // Prevent double-submit
+        if (this.isSaving) {
+            console.warn('⚠️ Guardado ya en proceso, ignorando submit duplicado');
+            return;
+        }
+
+        const saveBtn = document.querySelector('#appointment-form button[type="submit"]');
         const id = document.getElementById('appointment-id').value;
         const appointmentData = {
             patientId: document.getElementById('appointment-patient').value,
@@ -112,7 +121,15 @@ class Appointments {
         };
 
         try {
+            // Set saving flag and disable button
+            this.isSaving = true;
+            if (saveBtn) {
+                saveBtn.disabled = true;
+                saveBtn.textContent = 'Guardando...';
+            }
+
             if (id) {
+                console.log('📝 Actualizando cita existente:', id);
                 // Actualizar cita existente
                 const updated = await Storage.updateAppointment(id, appointmentData);
                 showToast('Cita actualizada exitosamente', 'success');
@@ -123,12 +140,15 @@ class Appointments {
                     GoogleCalendarAPI.updateEvent(updated.googleEventId, updated, patient);
                 }
             } else {
+                console.log('✨ Creando nueva cita:', appointmentData);
                 // Crear nueva cita
                 const created = await Storage.addAppointment(appointmentData);
+                console.log('✅ Cita creada con ID:', created.id);
                 showToast('Cita creada exitosamente', 'success');
 
                 // Sincronizar automáticamente con Google Calendar si está conectado
                 if (GoogleCalendarAPI.isSignedIn) {
+                    console.log('🔄 Sincronizando con Google Calendar...');
                     await this.syncAppointmentToGoogle(created.id);
                 }
             }
@@ -136,8 +156,15 @@ class Appointments {
             this.closeAppointmentModal();
             await this.renderAppointmentsList();
         } catch (error) {
-            console.error('Error guardando cita:', error);
+            console.error('❌ Error guardando cita:', error);
             showToast('Error al guardar cita: ' + error.message, 'error');
+        } finally {
+            // Reset flag and button state
+            this.isSaving = false;
+            if (saveBtn) {
+                saveBtn.disabled = false;
+                saveBtn.textContent = 'Guardar Cita';
+            }
         }
     }
 
@@ -193,6 +220,22 @@ class Appointments {
         today.setHours(0, 0, 0, 0);
 
         switch (dateFilter) {
+            case 'upcoming':
+                // Show only future appointments (today and onwards)
+                appointments = appointments.filter(a => {
+                    const [year, month, day] = a.date.split('-').map(Number);
+                    const aptDate = new Date(year, month - 1, day);
+                    return aptDate >= today;
+                });
+                break;
+            case 'past':
+                // Show only past appointments (before today)
+                appointments = appointments.filter(a => {
+                    const [year, month, day] = a.date.split('-').map(Number);
+                    const aptDate = new Date(year, month - 1, day);
+                    return aptDate < today;
+                });
+                break;
             case 'today':
                 appointments = appointments.filter(a => {
                     const [year, month, day] = a.date.split('-').map(Number);
