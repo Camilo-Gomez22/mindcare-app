@@ -46,7 +46,8 @@ class Reminders {
 
         if (totalEl) totalEl.textContent = tomorrowAppts.length;
         if (confirmedEl) confirmedEl.textContent = tomorrowAppts.filter(a => a.confirmationStatus === 'confirmed').length;
-        if (pendingEl) pendingEl.textContent = tomorrowAppts.filter(a => !a.confirmationStatus || a.confirmationStatus === 'pending' || a.confirmationStatus === 'sent').length;
+        // User requested to see "Pending Confirmation" (sent but not confirmed) instead of "Pending to Send"
+        if (pendingEl) pendingEl.textContent = tomorrowAppts.filter(a => a.confirmationStatus === 'sent').length;
 
         if (tomorrowAppts.length === 0) {
             container.innerHTML = '<p class="empty-state">No hay citas programadas para ma\u00f1ana</p>';
