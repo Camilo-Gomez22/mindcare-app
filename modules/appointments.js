@@ -201,7 +201,14 @@ class Appointments {
 
         select.innerHTML = '<option value="">Seleccionar paciente...</option>';
 
-        patients.forEach(patient => {
+        // Sort patients alphabetically by firstname, then lastname
+        const sortedPatients = patients.sort((a, b) => {
+            const nameA = `${a.firstname} ${a.lastname}`.toLowerCase();
+            const nameB = `${b.firstname} ${b.lastname}`.toLowerCase();
+            return nameA.localeCompare(nameB);
+        });
+
+        sortedPatients.forEach(patient => {
             const option = document.createElement('option');
             option.value = patient.id;
             option.textContent = `${patient.firstname} ${patient.lastname}`;

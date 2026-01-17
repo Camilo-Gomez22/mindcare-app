@@ -327,6 +327,20 @@ body {
     opacity: 1;
 }
 
+/* Clickable stat cards */
+.stat-card.clickable {
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.stat-card.clickable:hover {
+    transform: translateY(-4px) scale(1.02);
+}
+
+.stat-card.clickable:active {
+    transform: translateY(-2px) scale(1.01);
+}
+
 .stat-icon {
     width: 60px;
     height: 60px;
@@ -1104,6 +1118,7 @@ textarea.form-control {
         width: 100%;
     }
 }
+
 /* Reminders Section Styles */
 .reminders-grid {
     display: grid;
@@ -1216,11 +1231,11 @@ textarea.form-control {
     .reminders-grid {
         grid-template-columns: 1fr;
     }
-    
+
     .reminder-actions {
         flex-direction: column;
     }
-    
+
     .reminder-actions .btn {
         width: 100%;
     }

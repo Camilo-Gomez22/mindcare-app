@@ -66,8 +66,11 @@ class Reminders {
             const status = appointment.confirmationStatus || 'pending';
             const statusBadge = this.getConfirmationStatusBadge(status);
 
+            // Create unique ID for scrolling based on status
+            const statusClass = status === 'confirmed' ? 'confirmed' : (status === 'sent' ? 'pending' : 'all');
+
             html += `
-                <div class="reminder-card">
+                <div class="reminder-card" data-reminder-status="${statusClass}" id="reminder-${appointment.id}">
                     <div class="reminder-header">
                         <div>
                             <h3>${patient.firstname} ${patient.lastname}</h3>
@@ -118,6 +121,33 @@ class Reminders {
 
         html += '</div>';
         container.innerHTML = html;
+
+        // Add clickable functionality to stat cards
+        this.setupStatCardListeners();
+    }
+
+    static setupStatCardListeners() {
+        // Find all stat-card elements in reminders section and make them clickable
+        const remindersSectionCards = document.querySelectorAll('#reminders-section .stat-card');
+        if (remindersSectionCards.length >= 3) {
+            // Total Mañana (first card)
+            remindersSectionCards[0].classList.add('clickable');
+            remindersSectionCards[0].style.cursor = 'pointer';
+            remindersSectionCards[0].title = 'Click para ver todas las citas';
+            remindersSectionCards[0].addEventListener('click', () => this.scrollToAll());
+
+            // Confirmados (second card)
+            remindersSectionCards[1].classList.add('clickable');
+            remindersSectionCards[1].style.cursor = 'pointer';
+            remindersSectionCards[1].title = 'Click para ver citas confirmadas';
+            remindersSectionCards[1].addEventListener('click', () => this.scrollToConfirmed());
+
+            // Por Confirmar (third card)
+            remindersSectionCards[2].classList.add('clickable');
+            remindersSectionCards[2].style.cursor = 'pointer';
+            remindersSectionCards[2].title = 'Click para ver citas por confirmar';
+            remindersSectionCards[2].addEventListener('click', () => this.scrollToPending());
+        }
     }
 
     static getConfirmationStatusBadge(status) {
@@ -210,6 +240,32 @@ class Reminders {
             });
             showToast('Cita cancelada', 'success');
             await this.renderRemindersList();
+        }
+    }
+
+    // Navigation functions for stat cards
+    static scrollToAll() {
+        const firstReminder = document.querySelector('.reminder-card');
+        if (firstReminder) {
+            firstReminder.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+    }
+
+    static scrollToConfirmed() {
+        const confirmedReminder = document.querySelector('.reminder-card[data-reminder-status="confirmed"]');
+        if (confirmedReminder) {
+            confirmedReminder.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        } else {
+            showToast('No hay citas confirmadas', 'info');
+        }
+    }
+
+    static scrollToPending() {
+        const pendingReminder = document.querySelector('.reminder-card[data-reminder-status="pending"]');
+        if (pendingReminder) {
+            pendingReminder.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        } else {
+            showToast('No hay citas por confirmar', 'info');
         }
     }
 }
