@@ -262,7 +262,8 @@ class App {
             const patient = await Storage.getPatientById(apt.patientId);
             if (!patient) continue;
 
-            const date = new Date(apt.date);
+            // Fix timezone issue by ensuring date is parsed as local time
+            const date = new Date(apt.date + 'T00:00:00');
             const formattedDate = date.toLocaleDateString('es-ES', {
                 weekday: 'short',
                 day: 'numeric',
@@ -303,7 +304,8 @@ class App {
             const patient = await Storage.getPatientById(apt.patientId);
             if (!patient) continue;
 
-            const date = new Date(apt.date);
+            // Fix timezone issue by ensuring date is parsed as local time
+            const date = new Date(apt.date + 'T00:00:00');
             const formattedDate = date.toLocaleDateString('es-ES', {
                 day: 'numeric',
                 month: 'short'
