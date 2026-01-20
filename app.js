@@ -233,6 +233,35 @@ class App {
 
         // Update pending payments list
         this.updatePendingPaymentsList();
+
+        // Make Total Pacientes stat-card clickable
+        this.setupDashboardStatCards();
+    }
+
+    static setupDashboardStatCards() {
+        // Find the first stat-card in dashboard section (Total Pacientes)
+        const dashboardStatCards = document.querySelectorAll('#dashboard-section .stat-card');
+        if (dashboardStatCards.length > 0) {
+            const patientsCard = dashboardStatCards[0]; // First card is Total Pacientes
+            patientsCard.classList.add('clickable');
+            patientsCard.style.cursor = 'pointer';
+            patientsCard.title = 'Click para ir a Pacientes';
+
+            // Remove any existing click listener to avoid duplicates
+            const newCard = patientsCard.cloneNode(true);
+            patientsCard.parentNode.replaceChild(newCard, patientsCard);
+
+            // Add click listener
+            newCard.addEventListener('click', () => {
+                this.navigateToSection('patients');
+
+                // Update active nav button
+                const navButtons = document.querySelectorAll('.nav-btn');
+                navButtons.forEach(b => b.classList.remove('active'));
+                const patientsNavBtn = document.querySelector('.nav-btn[data-section="patients"]');
+                if (patientsNavBtn) patientsNavBtn.classList.add('active');
+            });
+        }
     }
 
     static async updateUpcomingAppointments() {

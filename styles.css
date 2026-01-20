@@ -938,6 +938,79 @@ textarea.form-control {
     min-width: 0;
 }
 
+/* Collapsible Patient Cards (Mobile Accordion) */
+.patient-card-collapsible {
+    overflow: hidden;
+}
+
+.patient-card-header-compact {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: var(--spacing-sm);
+    cursor: pointer;
+    user-select: none;
+}
+
+.patient-name-compact {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    flex: 1;
+}
+
+.patient-name-compact h3 {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: var(--gray-900);
+    margin: 0;
+    flex: 1;
+}
+
+.collapse-icon {
+    width: 20px;
+    height: 20px;
+    color: var(--gray-400);
+    transition: transform 0.3s ease;
+}
+
+.patient-card-collapsible.expanded .collapse-icon {
+    transform: rotate(180deg);
+}
+
+.patient-actions-compact {
+    display: flex;
+    gap: var(--spacing-xs);
+}
+
+.btn-icon {
+    padding: var(--spacing-xs);
+    min-width: auto;
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.btn-icon svg {
+    width: 18px;
+    height: 18px;
+}
+
+.patient-card-body-collapsible {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease;
+    margin-top: 0;
+}
+
+.patient-card-collapsible.expanded .patient-card-body-collapsible {
+    margin-top: var(--spacing-md);
+    padding-top: var(--spacing-md);
+    border-top: 1px solid var(--gray-200);
+}
+
 /* ===== Reports ===== */
 .reports-controls {
     display: flex;

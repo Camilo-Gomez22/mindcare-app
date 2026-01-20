@@ -185,7 +185,7 @@ class Patients {
         const isMobile = window.innerWidth <= 768;
 
         if (isMobile) {
-            // Mobile view: render as cards
+            // Mobile view: render as collapsible cards (accordion style)
             let html = '<div class="patients-card-grid">';
 
             for (const patient of patientsData) {
@@ -195,12 +195,30 @@ class Patients {
                 const debtClass = debt > 0 ? 'debt' : 'no-debt';
 
                 html += `
-                    <div class="patient-card">
-                        <div class="patient-card-header">
-                            <h3>${patient.firstname} ${patient.lastname}</h3>
-                            <span class="appointment-badge badge-${patient.preferredType}">${patient.preferredType}</span>
+                    <div class="patient-card patient-card-collapsible">
+                        <div class="patient-card-header-compact" onclick="window.patientsModule.togglePatientCard('${patient.id}')">
+                            <div class="patient-name-compact">
+                                <h3>${patient.firstname} ${patient.lastname}</h3>
+                                <svg class="collapse-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polyline points="6 9 12 15 18 9"></polyline>
+                                </svg>
+                            </div>
+                            <div class="patient-actions-compact">
+                                <button class="btn btn-icon btn-secondary" onclick="event.stopPropagation(); window.patientsModule.openPatientModal('${patient.id}')" title="Editar">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                                    </svg>
+                                </button>
+                                <button class="btn btn-icon btn-danger" onclick="event.stopPropagation(); window.patientsModule.deletePatient('${patient.id}')" title="Eliminar">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <polyline points="3 6 5 6 21 6"></polyline>
+                                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                                    </svg>
+                                </button>
+                            </div>
                         </div>
-                        <div class="patient-card-body">
+                        <div class="patient-card-body-collapsible" id="patient-details-${patient.id}">
                             <div class="patient-card-info">
                                 <span class="info-label">📧 Email:</span>
                                 <span class="info-value">${patient.email || '-'}</span>
@@ -208,6 +226,10 @@ class Patients {
                             <div class="patient-card-info">
                                 <span class="info-label">📱 Teléfono:</span>
                                 <span class="info-value">${patient.phone || '-'}</span>
+                            </div>
+                            <div class="patient-card-info">
+                                <span class="info-label">🏥 Tipo:</span>
+                                <span class="info-value"><span class="appointment-badge badge-${patient.preferredType}">${patient.preferredType}</span></span>
                             </div>
                             <div class="patient-card-info">
                                 <span class="info-label">📅 Inicio:</span>
@@ -221,22 +243,6 @@ class Patients {
                                 <span class="info-label">💰 Estado:</span>
                                 <span class="info-value ${debtClass}"><strong>${debtDisplay}</strong></span>
                             </div>
-                        </div>
-                        <div class="patient-card-actions">
-                            <button class="btn btn-sm btn-secondary" onclick="window.patientsModule.openPatientModal('${patient.id}')">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-                                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-                                </svg>
-                                Editar
-                            </button>
-                            <button class="btn btn-sm btn-danger" onclick="window.patientsModule.deletePatient('${patient.id}')">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <polyline points="3 6 5 6 21 6"></polyline>
-                                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                                </svg>
-                                Eliminar
-                            </button>
                         </div>
                     </div>
                 `;
@@ -317,6 +323,25 @@ class Patients {
             pendingCount: pendingAppointments.length,
             appointments: pendingAppointments
         };
+    }
+
+    static togglePatientCard(patientId) {
+        const detailsElement = document.getElementById(`patient-details-${patientId}`);
+        const cardElement = detailsElement?.closest('.patient-card-collapsible');
+
+        if (detailsElement && cardElement) {
+            const isExpanded = cardElement.classList.contains('expanded');
+
+            if (isExpanded) {
+                // Collapse
+                cardElement.classList.remove('expanded');
+                detailsElement.style.maxHeight = '0';
+            } else {
+                // Expand
+                cardElement.classList.add('expanded');
+                detailsElement.style.maxHeight = detailsElement.scrollHeight + 'px';
+            }
+        }
     }
 }
 
