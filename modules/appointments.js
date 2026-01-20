@@ -298,104 +298,205 @@ class Appointments {
             return;
         }
 
-        let html = '';
-        for (const appointment of appointments) {
-            const patient = await Storage.getPatientById(appointment.patientId);
-            if (!patient) continue;
+        // Detect if we're on mobile
+        const isMobile = window.innerWidth <= 768;
 
-            // Fix timezone issue by parsing YYYY-MM-DD explicitly
-            const [year, month, day] = appointment.date.split('-').map(Number);
-            const date = new Date(year, month - 1, day);
+        if (isMobile) {
+            // Mobile view: collapsible cards (accordion style)
+            let html = '<div class="appointments-grid-mobile">';
 
-            const formattedDate = date.toLocaleDateString('es-ES', {
-                weekday: 'short',
-                day: 'numeric',
-                month: 'short'
-            });
+            for (const appointment of appointments) {
+                const patient = await Storage.getPatientById(appointment.patientId);
+                if (!patient) continue;
 
-            const paymentBadge = appointment.paymentStatus === 'pendiente'
-                ? 'badge-pending'
-                : 'badge-paid';
+                // Fix timezone issue
+                const [year, month, day] = appointment.date.split('-').map(Number);
+                const date = new Date(year, month - 1, day);
 
-            const paymentText = appointment.paymentStatus === 'pendiente'
-                ? 'Pendiente'
-                : `Pagado - ${appointment.paymentStatus}`;
+                const formattedDate = date.toLocaleDateString('es-ES', {
+                    weekday: 'short',
+                    day: 'numeric',
+                    month: 'short'
+                });
 
-            html += `
-                <div class="appointment-card ${appointment.type}">
-                    <div class="appointment-header">
-                        <div class="appointment-patient">${patient.firstname} ${patient.lastname}</div>
-                        <span class="appointment-badge badge-${appointment.type}">${appointment.type}</span>
-                    </div>
-                    <div class="appointment-info">
-                        <div>📅 ${formattedDate} a las ${appointment.time}</div>
-                        <div>💰 $${appointment.amount.toLocaleString()} - <span class="appointment-badge ${paymentBadge}">${paymentText}</span></div>
-                        ${appointment.notes ? `<div>📝 ${appointment.notes}</div>` : ''}
-                        ${appointment.type === 'virtual' && appointment.meetLink ? `<div>🔗 <a href="${appointment.meetLink}" target="_blank">Link de reunión</a></div>` : ''}
-                    </div>
-                    <div class="appointment-actions">
-                        ${appointment.googleEventId ? `
-                            <!-- Cita sincronizada con Google -->
-                            <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
-                                <span class="appointment-badge" style="background: #4285F4; color: white;" title="Sincronizado con Google Calendar">
-                                    ✓ Sincronizado
-                                </span>
-                                ${this.getAttendeeStatusBadge(appointment.attendeeStatus)}
+                const paymentBadge = appointment.paymentStatus === 'pendiente'
+                    ? 'badge-pending'
+                    : 'badge-paid';
+
+                const paymentText = appointment.paymentStatus === 'pendiente'
+                    ? 'Pendiente'
+                    : `Pagado - ${appointment.paymentStatus}`;
+
+                html += `
+                    <div class="appointment-card appointment-card-collapsible ${appointment.type}">
+                        <div class="appointment-card-header-compact" onclick="window.appointmentsModule.toggleAppointmentCard('${appointment.id}')">
+                            <div class="appointment-name-compact">
+                                <div>
+                                    <h4>${patient.firstname} ${patient.lastname}</h4>
+                                    <p class="appointment-date-time">📅 ${formattedDate} • ⏰ ${appointment.time}</p>
+                                </div>
+                                <svg class="collapse-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polyline points="6 9 12 15 18 9"></polyline>
+                                </svg>
                             </div>
-                        ` : `
-                            <!-- Cita NO sincronizada - mostrar opciones de sincronización manual -->
-                            ${appointment.type === 'virtual' && appointment.meetLink ? `
-                                <button class="btn btn-sm btn-secondary" onclick="window.appointmentsModule.shareWhatsApp('${appointment.id}')">
+                            <div class="appointment-actions-compact">
+                                <button class="btn btn-icon btn-secondary" onclick="event.stopPropagation(); window.appointmentsModule.openAppointmentModal('${appointment.id}')" title="Editar">
                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                        <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path>
+                                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
                                     </svg>
-                                    WhatsApp
                                 </button>
+                                <button class="btn btn-icon btn-danger" onclick="event.stopPropagation(); window.appointmentsModule.deleteAppointment('${appointment.id}')" title="Eliminar">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <polyline points="3 6 5 6 21 6"></polyline>
+                                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="appointment-card-body-collapsible" id="appointment-details-${appointment.id}">
+                            <div class="appointment-detail-item">
+                                <span class="detail-label">🏥 Tipo:</span>
+                                <span class="detail-value"><span class="appointment-badge badge-${appointment.type}">${appointment.type}</span></span>
+                            </div>
+                            <div class="appointment-detail-item">
+                                <span class="detail-label">💰 Monto:</span>
+                                <span class="detail-value">$${appointment.amount.toLocaleString()}</span>
+                            </div>
+                            <div class="appointment-detail-item">
+                                <span class="detail-label">💳 Estado Pago:</span>
+                                <span class="detail-value"><span class="appointment-badge ${paymentBadge}">${paymentText}</span></span>
+                            </div>
+                            ${appointment.notes ? `
+                            <div class="appointment-detail-item">
+                                <span class="detail-label">📝 Notas:</span>
+                                <span class="detail-value">${appointment.notes}</span>
+                            </div>
                             ` : ''}
-                            <button class="btn btn-sm btn-success" onclick="window.appointmentsModule.downloadICS('${appointment.id}')" title="Descargar archivo .ics">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                                    <polyline points="7 10 12 15 17 10"></polyline>
-                                    <line x1="12" y1="15" x2="12" y2="3"></line>
-                                </svg>
-                                .ics
-                            </button>
-                            <button class="btn btn-sm btn-success" onclick="window.appointmentsModule.addToGoogleCalendar('${appointment.id}')" title="Agregar a Google Calendar">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-                                    <line x1="16" y1="2" x2="16" y2="6"></line>
-                                    <line x1="8" y1="2" x2="8" y2="6"></line>
-                                    <line x1="3" y1="10" x2="21" y2="10"></line>
-                                </svg>
-                                Calendar
-                            </button>
-                            <button class="btn btn-sm btn-primary" onclick="window.appointmentsModule.sendEmailInvitation('${appointment.id}')" title="Enviar invitación por email">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
-                                    <polyline points="22,6 12,13 2,6"></polyline>
-                                </svg>
-                                Email
-                            </button>
-                            <button class="btn btn-sm" style="background: #4285F4; color: white;" onclick="window.appointmentsModule.syncAppointmentToGoogle('${appointment.id}')" title="Sincronizar con Google Calendar">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <polyline points="23 4 23 10 17 10"></polyline>
-                                    <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
-                                </svg>
-                                Sync Google
-                            </button>
-                        `}
-                        <button class="btn btn-sm btn-secondary" onclick="window.appointmentsModule.openAppointmentModal('${appointment.id}')">
-                            Editar
-                        </button>
-                        <button class="btn btn-sm btn-danger" onclick="window.appointmentsModule.deleteAppointment('${appointment.id}')">
-                            Eliminar
-                        </button>
+                            ${appointment.type === 'virtual' && appointment.meetLink ? `
+                            <div class="appointment-detail-item">
+                                <span class="detail-label">🔗 Link:</span>
+                                <span class="detail-value"><a href="${appointment.meetLink}" target="_blank">Abrir reunión</a></span>
+                            </div>
+                            ` : ''}
+                            ${appointment.googleEventId ? `
+                            <div class="appointment-detail-item">
+                                <span class="detail-label">☁️ Google:</span>
+                                <span class="detail-value">
+                                    <span class="appointment-badge" style="background: #4285F4; color: white;">✓ Sincronizado</span>
+                                    ${this.getAttendeeStatusBadge(appointment.attendeeStatus)}
+                                </span>
+                            </div>
+                            ` : ''}
+                        </div>
                     </div>
-                </div>
-            `;
-        }
+                `;
+            }
 
-        container.innerHTML = html;
+            html += '</div>';
+            container.innerHTML = html;
+
+        } else {
+            // Desktop view: original card layout
+            let html = '';
+            for (const appointment of appointments) {
+                const patient = await Storage.getPatientById(appointment.patientId);
+                if (!patient) continue;
+
+                // Fix timezone issue by parsing YYYY-MM-DD explicitly
+                const [year, month, day] = appointment.date.split('-').map(Number);
+                const date = new Date(year, month - 1, day);
+
+                const formattedDate = date.toLocaleDateString('es-ES', {
+                    weekday: 'short',
+                    day: 'numeric',
+                    month: 'short'
+                });
+
+                const paymentBadge = appointment.paymentStatus === 'pendiente'
+                    ? 'badge-pending'
+                    : 'badge-paid';
+
+                const paymentText = appointment.paymentStatus === 'pendiente'
+                    ? 'Pendiente'
+                    : `Pagado - ${appointment.paymentStatus}`;
+
+                html += `
+                    <div class="appointment-card ${appointment.type}">
+                        <div class="appointment-header">
+                            <div class="appointment-patient">${patient.firstname} ${patient.lastname}</div>
+                            <span class="appointment-badge badge-${appointment.type}">${appointment.type}</span>
+                        </div>
+                        <div class="appointment-info">
+                            <div>📅 ${formattedDate} a las ${appointment.time}</div>
+                            <div>💰 $${appointment.amount.toLocaleString()} - <span class="appointment-badge ${paymentBadge}">${paymentText}</span></div>
+                            ${appointment.notes ? `<div>📝 ${appointment.notes}</div>` : ''}
+                            ${appointment.type === 'virtual' && appointment.meetLink ? `<div>🔗 <a href="${appointment.meetLink}" target="_blank">Link de reunión</a></div>` : ''}
+                        </div>
+                        <div class="appointment-actions">
+                            ${appointment.googleEventId ? `
+                                <!-- Cita sincronizada con Google -->
+                                <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+                                    <span class="appointment-badge" style="background: #4285F4; color: white;" title="Sincronizado con Google Calendar">
+                                        ✓ Sincronizado
+                                    </span>
+                                    ${this.getAttendeeStatusBadge(appointment.attendeeStatus)}
+                                </div>
+                            ` : `
+                                <!-- Cita NO sincronizada - mostrar opciones de sincronización manual -->
+                                ${appointment.type === 'virtual' && appointment.meetLink ? `
+                                    <button class="btn btn-sm btn-secondary" onclick="window.appointmentsModule.shareWhatsApp('${appointment.id}')">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path>
+                                        </svg>
+                                        WhatsApp
+                                    </button>
+                                ` : ''}
+                                <button class="btn btn-sm btn-success" onclick="window.appointmentsModule.downloadICS('${appointment.id}')" title="Descargar archivo .ics">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                        <polyline points="7 10 12 15 17 10"></polyline>
+                                        <line x1="12" y1="15" x2="12" y2="3"></line>
+                                    </svg>
+                                    .ics
+                                </button>
+                                <button class="btn btn-sm btn-success" onclick="window.appointmentsModule.addToGoogleCalendar('${appointment.id}')" title="Agregar a Google Calendar">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                                        <line x1="16" y1="2" x2="16" y2="6"></line>
+                                        <line x1="8" y1="2" x2="8" y2="6"></line>
+                                        <line x1="3" y1="10" x2="21" y2="10"></line>
+                                    </svg>
+                                    Calendar
+                                </button>
+                                <button class="btn btn-sm btn-primary" onclick="window.appointmentsModule.sendEmailInvitation('${appointment.id}')" title="Enviar invitación por email">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+                                        <polyline points="22,6 12,13 2,6"></polyline>
+                                    </svg>
+                                    Email
+                                </button>
+                                <button class="btn btn-sm" style="background: #4285F4; color: white;" onclick="window.appointmentsModule.syncAppointmentToGoogle('${appointment.id}')" title="Sincronizar con Google Calendar">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <polyline points="23 4 23 10 17 10"></polyline>
+                                        <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+                                    </svg>
+                                    Sync Google
+                                </button>
+                            `}
+                            <button class="btn btn-sm btn-secondary" onclick="window.appointmentsModule.openAppointmentModal('${appointment.id}')">
+                                Editar
+                            </button>
+                            <button class="btn btn-sm btn-danger" onclick="window.appointmentsModule.deleteAppointment('${appointment.id}')">
+                                Eliminar
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }
+
+            container.innerHTML = html;
+        }
     }
 
     static shareWhatsApp(appointmentId) {
@@ -536,6 +637,25 @@ class Appointments {
 
         showToast(`✓ ${updated} estado(s) actualizado(s)`, 'success');
         await this.renderAppointmentsList();
+    }
+
+    static toggleAppointmentCard(appointmentId) {
+        const detailsElement = document.getElementById(`appointment-details-${appointmentId}`);
+        const cardElement = detailsElement?.closest('.appointment-card-collapsible');
+
+        if (detailsElement && cardElement) {
+            const isExpanded = cardElement.classList.contains('expanded');
+
+            if (isExpanded) {
+                // Collapse
+                cardElement.classList.remove('expanded');
+                detailsElement.style.maxHeight = '0';
+            } else {
+                // Expand
+                cardElement.classList.add('expanded');
+                detailsElement.style.maxHeight = detailsElement.scrollHeight + 'px';
+            }
+        }
     }
 }
 

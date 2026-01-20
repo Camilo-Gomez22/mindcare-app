@@ -231,6 +231,12 @@ class Patients {
                                 <span class="info-label">🏥 Tipo:</span>
                                 <span class="info-value"><span class="appointment-badge badge-${patient.preferredType}">${patient.preferredType}</span></span>
                             </div>
+                            ${patient.connectionLocation ? `
+                            <div class="patient-card-info">
+                                <span class="info-label">🌐 Lugar de Conexión:</span>
+                                <span class="info-value">${patient.connectionLocation}</span>
+                            </div>
+                            ` : ''}
                             <div class="patient-card-info">
                                 <span class="info-label">📅 Inicio:</span>
                                 <span class="info-value">${(() => {
