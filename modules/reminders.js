@@ -181,7 +181,10 @@ class Reminders {
                 month: 'long'
             });
 
-            const message = `Hola ${patient.firstname}, te recordamos tu cita de ma\u00f1ana ${formattedDate} a las ${appointment.time}. \u00bfPuedes confirmar tu asistencia? Gracias 😊`;
+            // Convert time from 24h to 12h format with AM/PM
+            const time12h = this.convertTo12HourFormat(appointment.time);
+
+            const message = `Hola ${patient.firstname}, te recordamos tu cita de mañana ${formattedDate} a las ${time12h} hora Colombia. ¿Puedes confirmar tu asistencia? Gracias 😊`;
 
             // Clean phone number
             let cleanPhone = String(patient.phone).replace(/[^0-9]/g, '');
@@ -214,6 +217,14 @@ class Reminders {
             console.error('Error sending reminder:', error);
             showToast('Error al enviar recordatorio: ' + error.message, 'error');
         }
+    }
+
+    // Helper function to convert 24h format to 12h format with AM/PM
+    static convertTo12HourFormat(time24h) {
+        const [hours, minutes] = time24h.split(':').map(Number);
+        const period = hours >= 12 ? 'PM' : 'AM';
+        const hours12 = hours % 12 || 12; // Convert 0 to 12 for midnight
+        return `${hours12}:${minutes.toString().padStart(2, '0')} ${period}`;
     }
 
     static async markConfirmed(appointmentId) {
