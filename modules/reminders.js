@@ -184,7 +184,18 @@ class Reminders {
             // Convert time from 24h to 12h format with AM/PM
             const time12h = this.convertTo12HourFormat(appointment.time);
 
-            const message = `Hola ${patient.firstname}, te recordamos tu cita de mañana ${formattedDate} a las ${time12h} hora Colombia. ¿Puedes confirmar tu asistencia? Gracias 😊`;
+            // Only add "hora Colombia" if patient connects from outside Colombia
+            const isOutsideColombia = patient.connectionLocation &&
+                !patient.connectionLocation.toLowerCase().includes('colombia') &&
+                !patient.connectionLocation.toLowerCase().includes('bogot') &&
+                !patient.connectionLocation.toLowerCase().includes('medell') &&
+                !patient.connectionLocation.toLowerCase().includes('cali') &&
+                !patient.connectionLocation.toLowerCase().includes('barranquilla') &&
+                !patient.connectionLocation.toLowerCase().includes('cartagena');
+
+            const timeText = isOutsideColombia ? `${time12h} hora Colombia` : time12h;
+
+            const message = `Hola ${patient.firstname}, te recordamos tu cita de mañana ${formattedDate} a las ${timeText}. ¿Puedes confirmar tu asistencia? Gracias 😊`;
 
             // Clean phone number
             let cleanPhone = String(patient.phone).replace(/[^0-9]/g, '');

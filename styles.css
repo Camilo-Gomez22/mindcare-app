@@ -617,11 +617,15 @@ tbody td {
 }
 
 .appointment-badge {
-    padding: var(--spacing-xs) var(--spacing-sm);
+    padding: 0.25rem 0.5rem;
+    /* Reduced from var(--spacing-xs) var(--spacing-sm) */
     border-radius: var(--radius-sm);
-    font-size: 0.75rem;
+    font-size: 0.65rem;
+    /* Reduced from 0.75rem */
     font-weight: 600;
     text-transform: uppercase;
+    line-height: 1.2;
+    /* Added for better vertical spacing */
 }
 
 .badge-virtual {
