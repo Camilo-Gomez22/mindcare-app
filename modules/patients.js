@@ -181,6 +181,13 @@ class Patients {
             return;
         }
 
+        // Sort patients alphabetically by firstname, then lastname
+        const sortedPatients = patientsData.sort((a, b) => {
+            const nameA = `${a.firstname} ${a.lastname}`.toLowerCase();
+            const nameB = `${b.firstname} ${b.lastname}`.toLowerCase();
+            return nameA.localeCompare(nameB);
+        });
+
         // Detect if we're on mobile
         const isMobile = window.innerWidth <= 768;
 
@@ -188,7 +195,7 @@ class Patients {
             // Mobile view: render as collapsible cards (accordion style)
             let html = '<div class="patients-card-grid">';
 
-            for (const patient of patientsData) {
+            for (const patient of sortedPatients) {
                 const appointments = await Storage.getAppointmentsByPatient(patient.id);
                 const debt = this.calculatePatientDebt(appointments);
                 const debtDisplay = debt > 0 ? `$${debt.toLocaleString()}` : 'Al día';
@@ -274,7 +281,7 @@ class Patients {
                     <tbody>
             `;
 
-            for (const patient of patientsData) {
+            for (const patient of sortedPatients) {
                 const appointments = await Storage.getAppointmentsByPatient(patient.id);
                 const debt = this.calculatePatientDebt(appointments);
                 const debtDisplay = debt > 0 ? `$${debt.toLocaleString()}` : 'Al día';
