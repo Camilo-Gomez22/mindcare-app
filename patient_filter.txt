@@ -1,0 +1,3 @@
+﻿                    <select id="payment-patient-filter" class="filter-select">
+                        <option value="all">Todos los pacientes</option>
+                    </select>

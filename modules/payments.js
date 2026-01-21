@@ -5,6 +5,7 @@ import Storage from './storage.js';
 class Payments {
     static init() {
         this.setupEventListeners();
+        this.updatePatientFilter();
         this.renderPaymentsList().catch(err => console.error('Error rendering payments:', err));
     }
 
@@ -17,12 +18,22 @@ class Payments {
         document.getElementById('payment-method-filter').addEventListener('change', () => {
             this.renderPaymentsList();
         });
+
+        document.getElementById('payment-patient-filter').addEventListener('change', () => {
+            this.renderPaymentsList();
+        });
     }
 
     static async getFilteredPayments() {
         let appointments = await Storage.getAppointments();
         const statusFilter = document.getElementById('payment-status-filter').value;
         const methodFilter = document.getElementById('payment-method-filter').value;
+        const patientFilter = document.getElementById('payment-patient-filter').value;
+
+        // Apply patient filter
+        if (patientFilter !== 'all') {
+            appointments = appointments.filter(a => a.patientId === patientFilter);
+        }
 
         // Apply status filter
         if (statusFilter === 'paid') {
@@ -255,6 +266,33 @@ class Payments {
             pendingCount,
             totalAppointments: appointments.length
         };
+    }
+
+    static async updatePatientFilter() {
+        const select = document.getElementById('payment-patient-filter');
+        const patients = await Storage.getPatients();
+
+        // Sort patients alphabetically
+        const sortedPatients = patients.sort((a, b) => {
+            const nameA = `${a.firstname} ${a.lastname}`.toLowerCase();
+            const nameB = `${b.firstname} ${b.lastname}`.toLowerCase();
+            return nameA.localeCompare(nameB);
+        });
+
+        // Keep current selection
+        const currentValue = select.value || 'all';
+
+        select.innerHTML = '<option value="all">Todos los pacientes</option>';
+
+        sortedPatients.forEach(patient => {
+            const option = document.createElement('option');
+            option.value = patient.id;
+            option.textContent = `${patient.firstname} ${patient.lastname}`;
+            select.appendChild(option);
+        });
+
+        // Restore selection
+        select.value = currentValue;
     }
 }
 
