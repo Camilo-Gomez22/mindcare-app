@@ -43,12 +43,15 @@ class GoogleCalendarAPI {
             this.isInitialized = true;
             console.log('Google Calendar API inicializado');
 
-            // Verificar si hay sesión guardada
-            this.checkStoredAuth();
+            // Verificar si hay sesión guardada y esperar resultado
+            const authStatus = await this.checkStoredAuth();
+            return authStatus;
 
         } catch (error) {
             console.error('Error inicializando Google Calendar API:', error);
             showToast('Error al inicializar Google Calendar', 'error');
+            this.showLoginScreen();
+            return false;
         }
     }
 
@@ -214,7 +217,7 @@ class GoogleCalendarAPI {
         showToast('Tu sesión expiró. Por favor, inicia sesión nuevamente.', 'warning');
     }
 
-    static checkStoredAuth() {
+    static async checkStoredAuth() {
         const token = localStorage.getItem('google_access_token');
         const email = localStorage.getItem('google_user_email');
 
@@ -226,25 +229,23 @@ class GoogleCalendarAPI {
             if (!this.isTokenValid()) {
                 console.log('⚠️ Token expirado detectado, intentando renovación silenciosa...');
 
-                // Try silent re-authentication
-                this.attemptSilentReauth().then(success => {
-                    if (success) {
-                        console.log('✅ Token renovado exitosamente');
-                        this.isSignedIn = true;
-                        this.updateUIAfterSignIn();
-                        this.hideLoginScreen();
-
-                        setTimeout(() => {
-                            window.dispatchEvent(new CustomEvent('google-signin-success'));
-                        }, 1000);
-                    } else {
-                        console.log('❌ Renovación fallida, requiere login manual');
-                        this.clearAuth();
-                        this.showLoginScreen();
-                        showToast('Sesión expirada. Por favor, inicia sesión nuevamente.', 'warning');
-                    }
-                });
-                return;
+                // Try silent re-authentication (await the result)
+                const success = await this.attemptSilentReauth();
+                if (success) {
+                    console.log('✅ Token renovado exitosamente');
+                    this.isSignedIn = true;
+                    this.updateUIAfterSignIn();
+                    this.hideLoginScreen();
+                    // Dispatch event immediately (no setTimeout)
+                    window.dispatchEvent(new CustomEvent('google-signin-success'));
+                    return true;
+                } else {
+                    console.log('❌ Renovación fallida, requiere login manual');
+                    this.clearAuth();
+                    this.showLoginScreen();
+                    showToast('Sesión expirada. Por favor, inicia sesión nuevamente.', 'warning');
+                    return false;
+                }
             }
 
             // Token válido - permitir acceso
@@ -252,15 +253,37 @@ class GoogleCalendarAPI {
             this.updateUIAfterSignIn();
             this.hideLoginScreen();
             console.log('✅ Sesión restaurada exitosamente');
-
-            // Dispatch login success event to reload data (after a short delay to ensure app is ready)
-            setTimeout(() => {
-                window.dispatchEvent(new CustomEvent('google-signin-success'));
-            }, 1000);
+            // Dispatch event immediately (no setTimeout)
+            window.dispatchEvent(new CustomEvent('google-signin-success'));
+            return true;
         } else {
             console.log('❌ No hay credenciales guardadas, mostrando login');
             this.showLoginScreen();
+            return false;
         }
+    }
+
+    // Helper to wait for authentication to complete
+    static async waitForAuth() {
+        return new Promise((resolve) => {
+            if (this.isSignedIn) {
+                resolve(true);
+                return;
+            }
+
+            // Wait for signin event
+            const handler = () => {
+                window.removeEventListener('google-signin-success', handler);
+                resolve(this.isSignedIn);
+            };
+            window.addEventListener('google-signin-success', handler);
+
+            // Timeout after 30 seconds
+            setTimeout(() => {
+                window.removeEventListener('google-signin-success', handler);
+                resolve(false);
+            }, 30000);
+        });
     }
 
     // Attempt silent re-authentication (used when token expires)

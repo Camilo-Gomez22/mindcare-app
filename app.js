@@ -11,10 +11,30 @@ import Settings from './modules/settings.js';
 
 class App {
     static async init() {
-        console.log('Inicializando MindCare v2.2 (Persistencia de sesión mejorada)...');
+        console.log('Inicializando MindCare v2.3 (Autenticación segura)...');
 
-        // Initialize Google Calendar API
-        await this.initGoogleCalendar();
+        // Initialize Google Calendar API and wait for auth check
+        const isAuthenticated = await this.initGoogleCalendar();
+
+        if (isAuthenticated) {
+            // Only initialize modules if authenticated
+            await this.initModules();
+            console.log('MindCare iniciado exitosamente');
+        } else {
+            console.log('Esperando autenticación del usuario...');
+            // Wait for user to sign in
+            window.addEventListener('google-signin-success', async () => {
+                await this.initModules();
+                console.log('MindCare iniciado después de login');
+            }, { once: true });
+        }
+
+        // Setup session monitoring regardless of auth status
+        this.setupSessionMonitoring();
+    }
+
+    static async initModules() {
+        console.log('Inicializando módulos...');
 
         // Initialize modules
         Patients.init();
@@ -36,16 +56,11 @@ class App {
         window.paymentsModule = Payments;
         window.reportsModule = Reports;
         window.remindersModule = Reminders;
-
-        // Setup session monitoring
-        this.setupSessionMonitoring();
-
-        console.log('MindCare iniciado exitosamente');
     }
 
     static async initGoogleCalendar() {
         try {
-            await GoogleCalendarAPI.init();
+            const isAuthenticated = await GoogleCalendarAPI.init();
 
             // Setup event listeners for Google auth buttons in header
             const signInBtn = document.getElementById('google-signin-btn');
@@ -70,18 +85,25 @@ class App {
             if (signOutBtn) {
                 signOutBtn.addEventListener('click', () => {
                     GoogleCalendarAPI.signOut();
+                    // Reload page to reset state
+                    window.location.reload();
                 });
             }
 
-            // Check and migrate data if needed
-            await this.checkAndMigrateData();
+            // Check and migrate data if needed (only if authenticated)
+            if (isAuthenticated) {
+                await this.checkAndMigrateData();
+            }
 
             // Setup sync status listener
             this.setupSyncListener();
 
+            return isAuthenticated;
+
         } catch (error) {
             console.log('Google Calendar API no disponible:', error);
             // La aplicación funciona sin Google Calendar API
+            return false;
         }
     }
 
