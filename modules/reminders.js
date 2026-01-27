@@ -195,7 +195,7 @@ class Reminders {
 
             const timeText = isOutsideColombia ? `${time12h} hora Colombia` : time12h;
 
-            const message = `Hola ${patient.firstname}, te recordamos tu cita de mañana ${formattedDate} a las ${timeText}. ¿Puedes confirmar tu asistencia? Gracias 😊`;
+            const message = `Hola ${patient.firstname}, te recordamos tu cita de mañana ${formattedDate} a las ${timeText}. Te esperamos.`;
 
             // Clean phone number
             let cleanPhone = String(patient.phone).replace(/[^0-9]/g, '');
