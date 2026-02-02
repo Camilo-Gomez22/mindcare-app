@@ -20,9 +20,16 @@ class Reports {
             });
         }
 
-        // Auto-generate report when date range changes
+        // Auto-generate report when date range or type changes
+        const reportTypeInput = document.getElementById('report-type');
         const startDateInput = document.getElementById('report-start-date');
         const endDateInput = document.getElementById('report-end-date');
+
+        if (reportTypeInput) {
+            reportTypeInput.addEventListener('change', () => {
+                this.generateReport();
+            });
+        }
 
         if (startDateInput) {
             startDateInput.addEventListener('change', () => {
@@ -66,6 +73,7 @@ class Reports {
     }
 
     static async generateReport() {
+        const reportType = document.getElementById('report-type').value;
         const startDateValue = document.getElementById('report-start-date').value;
         const endDateValue = document.getElementById('report-end-date').value;
 
@@ -90,29 +98,52 @@ class Reports {
 
         const appointments = await Storage.getAppointments();
 
-        // Filter appointments by date range
-        const filteredAppointments = appointments.filter(apt => {
-            const [year, month, day] = apt.date.split('-').map(Number);
-            const aptDate = new Date(year, month - 1, day);
+        // Filter appointments based on report type
+        let filteredAppointments;
 
-            // Adjust start/end to local comparisons
-            const startLocal = new Date(startDateValue + 'T00:00:00');
-            const endLocal = new Date(endDateValue + 'T23:59:59');
+        if (reportType === 'payment') {
+            // Financial report: filter by payment date (only paid appointments)
+            filteredAppointments = appointments.filter(apt => {
+                // Only include paid appointments
+                if (apt.paymentStatus === 'pendiente' || !apt.paidDate) {
+                    return false;
+                }
 
-            return aptDate >= startLocal && aptDate <= endLocal;
-        });
+                const [year, month, day] = apt.paidDate.split('-').map(Number);
+                const paidDate = new Date(year, month - 1, day);
+
+                const startLocal = new Date(startDateValue + 'T00:00:00');
+                const endLocal = new Date(endDateValue + 'T23:59:59');
+
+                return paidDate >= startLocal && paidDate <= endLocal;
+            });
+        } else {
+            // Standard report: filter by appointment date
+            filteredAppointments = appointments.filter(apt => {
+                const [year, month, day] = apt.date.split('-').map(Number);
+                const aptDate = new Date(year, month - 1, day);
+
+                const startLocal = new Date(startDateValue + 'T00:00:00');
+                const endLocal = new Date(endDateValue + 'T23:59:59');
+
+                return aptDate >= startLocal && aptDate <= endLocal;
+            });
+        }
 
         if (filteredAppointments.length === 0) {
+            const message = reportType === 'payment'
+                ? 'No hay pagos recibidos en el período seleccionado'
+                : 'No hay citas en el período seleccionado';
             document.getElementById('report-content').innerHTML = `
-                <p class="empty-state">No hay citas en el período seleccionado</p>
+                <p class="empty-state">${message}</p>
             `;
             return;
         }
 
-        await this.renderReport(filteredAppointments, startDateValue, endDateValue);
+        await this.renderReport(filteredAppointments, startDateValue, endDateValue, reportType);
     }
 
-    static async renderReport(appointments, startDate, endDate) {
+    static async renderReport(appointments, startDate, endDate, reportType = 'appointment') {
         const start = new Date(startDate + 'T00:00:00');
         const end = new Date(endDate + 'T23:59:59');
 
@@ -125,6 +156,9 @@ class Reports {
         };
 
         const periodLabel = `${formatDate(start)} - ${formatDate(end)}`;
+        const reportTypeLabel = reportType === 'payment'
+            ? 'Reporte Financiero (por Fecha de Pago)'
+            : 'Reporte por Fecha de Cita';
 
         // Group by patient
         const patientStats = {};
@@ -158,6 +192,8 @@ class Reports {
             startDate,
             endDate,
             periodLabel,
+            reportType,
+            reportTypeLabel,
             appointments,
             patientStats,
             totalRevenue,
@@ -166,7 +202,7 @@ class Reports {
 
         let html = `
             <div class="report-header">
-                <h3>Reporte del Período</h3>
+                <h3>${reportTypeLabel}</h3>
                 <p class="report-period">${periodLabel}</p>
                 <div class="report-summary">
                     <div class="summary-item">
@@ -235,7 +271,7 @@ class Reports {
             return;
         }
 
-        const { periodLabel, patientStats, appointments, totalRevenue, totalPending } = this.currentReportData;
+        const { periodLabel, reportTypeLabel, patientStats, appointments, totalRevenue, totalPending } = this.currentReportData;
 
         // Helper function to format dates
         const formatDate = (date) => {
@@ -251,7 +287,7 @@ class Reports {
 
         // Summary sheet
         const summaryData = [
-            ['Reporte de Período', periodLabel],
+            [reportTypeLabel, periodLabel],
             [],
             ['Métrica', 'Valor'],
             ['Total Citas', appointments.length],
@@ -265,8 +301,7 @@ class Reports {
 
         // Patient details sheet with enhanced formatting
         const patientDetailsData = [
-            ['REPORTE DE PERÍODO'],
-            ['REPORTE DE PERÍODO'],
+            [reportTypeLabel],
             [`Del ${formatDate(new Date(this.currentReportData.startDate + 'T00:00:00'))} al ${formatDate(new Date(this.currentReportData.endDate + 'T00:00:00'))}`],
             [], // Empty row
             ['Paciente', 'Sesiones', 'Pagado', 'Pendiente', 'Total']
@@ -316,13 +351,21 @@ class Reports {
 
         // Appointments details sheet
         const appointmentsData = [
-            ['Fecha', 'Hora', 'Paciente', 'Tipo', 'Monto', 'Estado Pago', 'Método']
+            ['Fecha Cita', 'Hora', 'Paciente', 'Tipo', 'Monto', 'Estado Pago', 'Método', 'Fecha de Pago']
         ];
 
         for (const apt of appointments) {
             const patient = await Storage.getPatientById(apt.patientId);
             const [year, month, day] = apt.date.split('-').map(Number);
             const date = new Date(year, month - 1, day);
+
+            let paidDateFormatted = '-';
+            if (apt.paidDate) {
+                const [pYear, pMonth, pDay] = apt.paidDate.split('-').map(Number);
+                const paidDate = new Date(pYear, pMonth - 1, pDay);
+                paidDateFormatted = paidDate.toLocaleDateString('es-ES');
+            }
+
             appointmentsData.push([
                 date.toLocaleDateString('es-ES'),
                 apt.time,
@@ -330,7 +373,8 @@ class Reports {
                 apt.type,
                 apt.amount,
                 apt.paymentStatus === 'pendiente' ? 'Pendiente' : 'Pagado',
-                apt.paymentStatus === 'pendiente' ? '-' : apt.paymentStatus
+                apt.paymentStatus === 'pendiente' ? '-' : apt.paymentStatus,
+                paidDateFormatted
             ]);
         }
 

@@ -241,6 +241,29 @@ class Storage {
         });
     }
 
+    // Data migration: Add paidDate to existing paid appointments
+    static async migratePaidDates() {
+        const appointments = await this.getAppointments();
+        let migrationCount = 0;
+
+        for (const apt of appointments) {
+            // If appointment is paid but doesn't have a paidDate, set it to the appointment date
+            if (apt.paymentStatus !== 'pendiente' && !apt.paidDate) {
+                apt.paidDate = apt.date; // Use appointment date as payment date
+                migrationCount++;
+            }
+        }
+
+        if (migrationCount > 0) {
+            await this.saveAppointments(appointments);
+            console.log(`✅ Migrated ${migrationCount} paid appointments with paidDate`);
+            return migrationCount;
+        }
+
+        console.log('✅ No appointments needed migration');
+        return 0;
+    }
+
     // Utility
     static generateId() {
         return Date.now().toString(36) + Math.random().toString(36).substr(2);

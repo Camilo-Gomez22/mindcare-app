@@ -204,7 +204,11 @@ class Payments {
 
     static async markAsPaid(appointmentId, method) {
         try {
-            await Storage.updateAppointment(appointmentId, { paymentStatus: method });
+            const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+            await Storage.updateAppointment(appointmentId, {
+                paymentStatus: method,
+                paidDate: today
+            });
             await this.renderPaymentsList();
 
             // Update other views
@@ -219,7 +223,10 @@ class Payments {
 
     static async markAsPending(appointmentId) {
         try {
-            await Storage.updateAppointment(appointmentId, { paymentStatus: 'pendiente' });
+            await Storage.updateAppointment(appointmentId, {
+                paymentStatus: 'pendiente',
+                paidDate: null
+            });
             await this.renderPaymentsList();
 
             // Update other views

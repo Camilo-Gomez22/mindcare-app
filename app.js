@@ -36,6 +36,9 @@ class App {
     static async initModules() {
         console.log('Inicializando módulos...');
 
+        // Run data migrations first
+        await this.checkAndMigrateData();
+
         // Initialize modules
         Patients.init();
         Appointments.init();
@@ -151,8 +154,13 @@ class App {
     }
 
     static async checkAndMigrateData() {
-        // Migration logic disabled - data is automatically stored in Google Drive
-        console.log('✅ Using modern Google Drive storage');
+        // Run data migrations
+        console.log('🔄 Checking for data migrations...');
+        try {
+            await Storage.migratePaidDates();
+        } catch (error) {
+            console.error('❌ Error running migrations:', error);
+        }
     }
 
     static setupNavigation() {
