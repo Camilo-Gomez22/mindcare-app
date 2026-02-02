@@ -124,6 +124,13 @@ class Appointments {
             amount: parseFloat(document.getElementById('appointment-payment-amount').value) || 0
         };
 
+        // Check if this is a historical appointment (in the past)
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const [year, month, day] = appointmentData.date.split('-').map(Number);
+        const appointmentDate = new Date(year, month - 1, day);
+        const isHistorical = appointmentDate < today;
+
         try {
             // Set saving flag and disable button
             this.isSaving = true;
@@ -136,10 +143,15 @@ class Appointments {
                 console.log('📝 Actualizando cita existente:', id);
                 // Actualizar cita existente
                 const updated = await Storage.updateAppointment(id, appointmentData);
-                showToast('Cita actualizada exitosamente', 'success');
 
-                // Si está conectado a Google, actualizar evento
-                if (GoogleCalendarAPI.isSignedIn && updated.googleEventId) {
+                if (isHistorical) {
+                    showToast('Cita histórica actualizada', 'success');
+                } else {
+                    showToast('Cita actualizada exitosamente', 'success');
+                }
+
+                // Si está conectado a Google y NO es histórica, actualizar evento
+                if (GoogleCalendarAPI.isSignedIn && updated.googleEventId && !isHistorical) {
                     const patient = await Storage.getPatientById(updated.patientId);
                     GoogleCalendarAPI.updateEvent(updated.googleEventId, updated, patient);
                 }
@@ -148,12 +160,17 @@ class Appointments {
                 // Crear nueva cita
                 const created = await Storage.addAppointment(appointmentData);
                 console.log('✅ Cita creada con ID:', created.id);
-                showToast('Cita creada exitosamente', 'success');
 
-                // Sincronizar automáticamente con Google Calendar si está conectado
-                if (GoogleCalendarAPI.isSignedIn) {
-                    console.log('🔄 Sincronizando con Google Calendar...');
-                    await this.syncAppointmentToGoogle(created.id);
+                if (isHistorical) {
+                    showToast('✓ Cita histórica guardada (no se sincronizará con Calendar)', 'success');
+                } else {
+                    showToast('Cita creada exitosamente', 'success');
+
+                    // Sincronizar automáticamente con Google Calendar SOLO si NO es histórica
+                    if (GoogleCalendarAPI.isSignedIn) {
+                        console.log('🔄 Sincronizando con Google Calendar...');
+                        await this.syncAppointmentToGoogle(created.id);
+                    }
                 }
             }
 
