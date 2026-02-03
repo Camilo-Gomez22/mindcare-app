@@ -207,8 +207,8 @@ class Payments {
             // Automatic date assignment
             const today = new Date().toISOString().split('T')[0];
 
-/* MANUAL DATE SELECTION - Commented out, uncomment only for historical adjustments
-const appointment = await Storage.getAppointmentById(appointmentId);
+            /* MANUAL DATE SELECTION - Commented out, uncomment only for historical adjustments
+            const appointment = await Storage.getAppointmentById(appointmentId);
 
 // Prompt for payment date
 const dateInput = prompt(
@@ -217,11 +217,11 @@ const dateInput = prompt(
     `Formato: AAAA-MM-DD (ej: 2026-01-26)`,
     today
 );
-
-// If user cancels, abort
-if (dateInput === null) {
-    return;
-}
+            
+            // If user cancels, abort
+            if (dateInput === null) {
+                return;
+            }
 
 // Validate date format
 const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
@@ -231,125 +231,125 @@ if (!dateRegex.test(dateInput)) {
     });
     return;
 }
+            
+            // Validate date is not in the future
+            const paymentDate = new Date(dateInput);
+            const todayDate = new Date(today);
+            if (paymentDate > todayDate) {
+                import('../app.js').then(module => {
+                    module.showToast('La fecha de pago no puede ser futura', 'error');
+                });
+                return;
+            }
+            */
 
-// Validate date is not in the future
-const paymentDate = new Date(dateInput);
-const todayDate = new Date(today);
-if (paymentDate > todayDate) {
-    import('../app.js').then(module => {
-        module.showToast('La fecha de pago no puede ser futura', 'error');
-    });
-    return;
-}
+            // Update appointment with payment info
+            await Storage.updateAppointment(appointmentId, {
+                paymentStatus: method,
+                paidDate: today  // Using today's date automatically
+            });
+            await this.renderPaymentsList();
 
-
-// Update appointment with payment info
-await Storage.updateAppointment(appointmentId, {
-    paymentStatus: method,
-    paidDate: dateInput
-});
-await this.renderPaymentsList();
-
-// Update other views
-import('../app.js').then(async module => {
-    module.showToast(`Pago registrado como ${method}`, 'success');
-    await module.updateDashboard();
-});
-} catch (error) {
-console.error('Error marking as paid:', error);
-}
-}
-
-static async markAsPending(appointmentId) {
-try {
-// Confirmation dialog to prevent accidental unmarking
-const confirmed = confirm(
-    '¿Estás seguro de que quieres marcar este pago como PENDIENTE?\n\n' +
-    'Esto eliminará el registro de pago y la fecha de pago.'
-);
-
-if (!confirmed) {
-    return; // User cancelled
-}
-
-await Storage.updateAppointment(appointmentId, {
-    paymentStatus: 'pendiente',
-    paidDate: null
-});
-await this.renderPaymentsList();
-
-// Update other views
-import('../app.js').then(async module => {
-    module.showToast('Pago marcado como pendiente', 'success');
-    await module.updateDashboard();
-});
-} catch (error) {
-console.error('Error marking as pending:', error);
-}
-}
-
-static async getPaymentsSummary(startDate, endDate) {
-const appointments = await Storage.getAppointmentsByDateRange(startDate, endDate);
-
-let totalRevenue = 0;
-let totalPending = 0;
-let totalCash = 0;
-let totalTransfer = 0;
-let paidCount = 0;
-let pendingCount = 0;
-
-appointments.forEach(apt => {
-if (apt.paymentStatus === 'pendiente') {
-    totalPending += apt.amount;
-    pendingCount++;
-} else {
-    totalRevenue += apt.amount;
-    paidCount++;
-    if (apt.paymentStatus === 'efectivo') {
-        totalCash += apt.amount;
-    } else if (apt.paymentStatus === 'transferencia') {
-        totalTransfer += apt.amount;
+            // Update other views
+            import('../app.js').then(async module => {
+                module.showToast(`Pago registrado como ${method}`, 'success');
+                await module.updateDashboard();
+            });
+        } catch (error) {
+            console.error('Error marking as paid:', error);
+        }
     }
-}
-});
 
-return {
-totalRevenue,
-totalPending,
-totalCash,
-totalTransfer,
-paidCount,
-pendingCount,
-totalAppointments: appointments.length
-};
-}
+    static async markAsPending(appointmentId) {
+        try {
+            // Confirmation dialog to prevent accidental unmarking
+            const confirmed = confirm(
+                '¿Estás seguro de que quieres marcar este pago como PENDIENTE?\n\n' +
+                'Esto eliminará el registro de pago y la fecha de pago.'
+            );
 
-static async updatePatientFilter() {
-const select = document.getElementById('payment-patient-filter');
-const patients = await Storage.getPatients();
+            if (!confirmed) {
+                return; // User cancelled
+            }
 
-// Sort patients alphabetically
-const sortedPatients = patients.sort((a, b) => {
-const nameA = `${a.firstname} ${a.lastname}`.toLowerCase();
-const nameB = `${b.firstname} ${b.lastname}`.toLowerCase();
-return nameA.localeCompare(nameB);
-});
+            await Storage.updateAppointment(appointmentId, {
+                paymentStatus: 'pendiente',
+                paidDate: null
+            });
+            await this.renderPaymentsList();
 
-// Keep current selection
-const currentValue = select.value || 'all';
+            // Update other views
+            import('../app.js').then(async module => {
+                module.showToast('Pago marcado como pendiente', 'success');
+                await module.updateDashboard();
+            });
+        } catch (error) {
+            console.error('Error marking as pending:', error);
+        }
+    }
 
-select.innerHTML = '<option value="all">Todos los pacientes</option>';
+    static async getPaymentsSummary(startDate, endDate) {
+        const appointments = await Storage.getAppointmentsByDateRange(startDate, endDate);
 
-sortedPatients.forEach(patient => {
-const option = document.createElement('option');
-option.value = patient.id;
-option.textContent = `${patient.firstname} ${patient.lastname}`;
-select.appendChild(option);
-});
+        let totalRevenue = 0;
+        let totalPending = 0;
+        let totalCash = 0;
+        let totalTransfer = 0;
+        let paidCount = 0;
+        let pendingCount = 0;
 
-// Restore selection
-select.value = currentValue;
-}
+        appointments.forEach(apt => {
+            if (apt.paymentStatus === 'pendiente') {
+                totalPending += apt.amount;
+                pendingCount++;
+            } else {
+                totalRevenue += apt.amount;
+                paidCount++;
+                if (apt.paymentStatus === 'efectivo') {
+                    totalCash += apt.amount;
+                } else if (apt.paymentStatus === 'transferencia') {
+                    totalTransfer += apt.amount;
+                }
+            }
+        });
+
+        return {
+            totalRevenue,
+            totalPending,
+            totalCash,
+            totalTransfer,
+            paidCount,
+            pendingCount,
+            totalAppointments: appointments.length
+        };
+    }
+
+    static async updatePatientFilter() {
+        const select = document.getElementById('payment-patient-filter');
+        const patients = await Storage.getPatients();
+
+        // Sort patients alphabetically
+        const sortedPatients = patients.sort((a, b) => {
+            const nameA = `${a.firstname} ${a.lastname}`.toLowerCase();
+            const nameB = `${b.firstname} ${b.lastname}`.toLowerCase();
+            return nameA.localeCompare(nameB);
+        });
+
+        // Keep current selection
+        const currentValue = select.value || 'all';
+
+        select.innerHTML = '<option value="all">Todos los pacientes</option>';
+
+        sortedPatients.forEach(patient => {
+            const option = document.createElement('option');
+            option.value = patient.id;
+            option.textContent = `${patient.firstname} ${patient.lastname}`;
+            select.appendChild(option);
+        });
+
+        // Restore selection
+        select.value = currentValue;
+    }
 }
 
 export default Payments;
