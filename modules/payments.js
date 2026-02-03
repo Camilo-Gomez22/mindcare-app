@@ -204,16 +204,52 @@ class Payments {
 
     static async markAsPaid(appointmentId, method) {
         try {
-            const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+            // Get payment date from user
+            const today = new Date().toISOString().split('T')[0];
+            const appointment = await Storage.getAppointmentById(appointmentId);
+
+            // Prompt for payment date
+            const dateInput = prompt(
+                `¿En qué fecha se recibió el pago?\n\n` +
+                `Fecha de la cita: ${appointment.date}\n` +
+                `Formato: AAAA-MM-DD (ej: 2026-01-26)`,
+                today
+            );
+
+            // If user cancels, abort
+            if (dateInput === null) {
+                return;
+            }
+
+            // Validate date format
+            const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+            if (!dateRegex.test(dateInput)) {
+                import('../app.js').then(module => {
+                    module.showToast('Formato de fecha inválido. Usa AAAA-MM-DD', 'error');
+                });
+                return;
+            }
+
+            // Validate date is not in the future
+            const paymentDate = new Date(dateInput);
+            const todayDate = new Date(today);
+            if (paymentDate > todayDate) {
+                import('../app.js').then(module => {
+                    module.showToast('La fecha de pago no puede ser futura', 'error');
+                });
+                return;
+            }
+
+            // Update appointment with payment info
             await Storage.updateAppointment(appointmentId, {
                 paymentStatus: method,
-                paidDate: today
+                paidDate: dateInput
             });
             await this.renderPaymentsList();
 
             // Update other views
             import('../app.js').then(async module => {
-                module.showToast(`Pago registrado como ${method}`, 'success');
+                module.showToast(`Pago registrado como ${method} (${dateInput})`, 'success');
                 await module.updateDashboard();
             });
         } catch (error) {
