@@ -164,6 +164,8 @@ class Reports {
         const patientStats = {};
         let totalRevenue = 0;
         let totalPending = 0;
+        let totalEfectivo = 0;
+        let totalTransferencia = 0;
 
         for (const apt of appointments) {
             if (!patientStats[apt.patientId]) {
@@ -172,7 +174,9 @@ class Reports {
                     patient,
                     sessions: 0,
                     paid: 0,
-                    pending: 0
+                    pending: 0,
+                    efectivo: 0,
+                    transferencia: 0
                 };
             }
 
@@ -184,6 +188,15 @@ class Reports {
             } else {
                 patientStats[apt.patientId].paid += apt.amount;
                 totalRevenue += apt.amount;
+
+                // Track by payment method
+                if (apt.paymentStatus === 'efectivo') {
+                    patientStats[apt.patientId].efectivo += apt.amount;
+                    totalEfectivo += apt.amount;
+                } else if (apt.paymentStatus === 'transferencia') {
+                    patientStats[apt.patientId].transferencia += apt.amount;
+                    totalTransferencia += apt.amount;
+                }
             }
         }
 
@@ -197,7 +210,9 @@ class Reports {
             appointments,
             patientStats,
             totalRevenue,
-            totalPending
+            totalPending,
+            totalEfectivo,
+            totalTransferencia
         };
 
         let html = `
@@ -214,6 +229,14 @@ class Reports {
                         <span class="summary-value">$${totalRevenue.toLocaleString()}</span>
                     </div>
                     <div class="summary-item">
+                        <span class="summary-label">Efectivo:</span>
+                        <span class="summary-value" style="color: var(--success);">$${totalEfectivo.toLocaleString()}</span>
+                    </div>
+                    <div class="summary-item">
+                        <span class="summary-label">Transferencia:</span>
+                        <span class="summary-value" style="color: var(--primary);">$${totalTransferencia.toLocaleString()}</span>
+                    </div>
+                    <div class="summary-item">
                         <span class="summary-label">Pagos Pendientes:</span>
                         <span class="summary-value">$${totalPending.toLocaleString()}</span>
                     </div>
@@ -227,7 +250,8 @@ class Reports {
                         <tr>
                             <th>Paciente</th>
                             <th>Sesiones</th>
-                            <th>Pagado</th>
+                            <th>Efectivo</th>
+                            <th>Transferencia</th>
                             <th>Pendiente</th>
                             <th>Total</th>
                         </tr>
@@ -241,7 +265,8 @@ class Reports {
                 <tr>
                     <td><strong>${stat.patient.firstname} ${stat.patient.lastname}</strong></td>
                     <td>${stat.sessions}</td>
-                    <td style="color: var(--success);">$${stat.paid.toLocaleString()}</td>
+                    <td style="color: var(--success);">$${stat.efectivo.toLocaleString()}</td>
+                    <td style="color: var(--primary);">$${stat.transferencia.toLocaleString()}</td>
                     <td style="color: var(--error);">$${stat.pending.toLocaleString()}</td>
                     <td><strong>$${total.toLocaleString()}</strong></td>
                 </tr>
@@ -253,7 +278,8 @@ class Reports {
                         <tr style="background: var(--gray-100); font-weight: bold;">
                             <td>TOTAL</td>
                             <td>${appointments.length}</td>
-                            <td style="color: var(--success);">$${totalRevenue.toLocaleString()}</td>
+                            <td style="color: var(--success);">$${totalEfectivo.toLocaleString()}</td>
+                            <td style="color: var(--primary);">$${totalTransferencia.toLocaleString()}</td>
                             <td style="color: var(--error);">$${totalPending.toLocaleString()}</td>
                             <td>$${grandTotal.toLocaleString()}</td>
                         </tr>
@@ -271,7 +297,7 @@ class Reports {
             return;
         }
 
-        const { periodLabel, reportTypeLabel, patientStats, appointments, totalRevenue, totalPending } = this.currentReportData;
+        const { periodLabel, reportTypeLabel, patientStats, appointments, totalRevenue, totalPending, totalEfectivo, totalTransferencia } = this.currentReportData;
 
         // Helper function to format dates
         const formatDate = (date) => {
@@ -292,6 +318,8 @@ class Reports {
             ['Métrica', 'Valor'],
             ['Total Citas', appointments.length],
             ['Ingresos Totales', totalRevenue],
+            ['Efectivo', totalEfectivo],
+            ['Transferencia', totalTransferencia],
             ['Pagos Pendientes', totalPending],
             ['Total General', totalRevenue + totalPending]
         ];
@@ -304,7 +332,7 @@ class Reports {
             [reportTypeLabel],
             [`Del ${formatDate(new Date(this.currentReportData.startDate + 'T00:00:00'))} al ${formatDate(new Date(this.currentReportData.endDate + 'T00:00:00'))}`],
             [], // Empty row
-            ['Paciente', 'Sesiones', 'Pagado', 'Pendiente', 'Total']
+            ['Paciente', 'Sesiones', 'Efectivo', 'Transferencia', 'Pendiente', 'Total']
         ];
 
         Object.values(patientStats).forEach(stat => {
@@ -312,7 +340,8 @@ class Reports {
             patientDetailsData.push([
                 `${stat.patient.firstname} ${stat.patient.lastname}`,
                 stat.sessions,
-                stat.paid,
+                stat.efectivo,
+                stat.transferencia,
                 stat.pending,
                 total
             ]);
@@ -326,7 +355,8 @@ class Reports {
         patientDetailsData.push([
             '═══ TOTALES ═══',
             appointments.length,
-            totalRevenue,
+            totalEfectivo,
+            totalTransferencia,
             totalPending,
             grandTotal
         ]);
