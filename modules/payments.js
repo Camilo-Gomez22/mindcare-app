@@ -259,6 +259,16 @@ class Payments {
 
     static async markAsPending(appointmentId) {
         try {
+            // Confirmation dialog to prevent accidental unmarking
+            const confirmed = confirm(
+                '¿Estás seguro de que quieres marcar este pago como PENDIENTE?\n\n' +
+                'Esto eliminará el registro de pago y la fecha de pago.'
+            );
+
+            if (!confirmed) {
+                return; // User cancelled
+            }
+
             await Storage.updateAppointment(appointmentId, {
                 paymentStatus: 'pendiente',
                 paidDate: null
