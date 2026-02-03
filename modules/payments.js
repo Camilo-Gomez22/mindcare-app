@@ -204,10 +204,8 @@ class Payments {
 
     static async markAsPaid(appointmentId, method) {
         try {
-            // Automatic date assignment
+            // Get payment date from user
             const today = new Date().toISOString().split('T')[0];
-
-            /* MANUAL DATE SELECTION - Commented out, uncomment only for historical adjustments
             const appointment = await Storage.getAppointmentById(appointmentId);
 
             // Prompt for payment date
@@ -242,18 +240,17 @@ class Payments {
                 return;
             }
 
-            */
 
             // Update appointment with payment info
             await Storage.updateAppointment(appointmentId, {
                 paymentStatus: method,
-                paidDate: today  // Using today's date automatically
+                paidDate: dateInput
             });
             await this.renderPaymentsList();
 
             // Update other views
             import('../app.js').then(async module => {
-                module.showToast(`Pago registrado como ${method}`, 'success');
+                module.showToast(`Pago registrado como ${method} (${dateInput})`, 'success');
                 await module.updateDashboard();
             });
         } catch (error) {
