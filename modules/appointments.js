@@ -49,6 +49,10 @@ class Appointments {
             this.renderAppointmentsList();
         });
 
+        document.getElementById('appointment-patient-filter').addEventListener('change', () => {
+            this.renderAppointmentsList();
+        });
+
         // Refresh all attendee statuses button
         document.getElementById('refresh-all-statuses-btn').addEventListener('click', async () => {
             await this.refreshAllAttendeeStatuses();
@@ -236,12 +240,54 @@ class Appointments {
         if (currentValue) {
             select.value = currentValue;
         }
+
+        // Also update the filter dropdown
+        this.updatePatientFilter(sortedPatients);
+    }
+
+    static updatePatientFilter(patients = null) {
+        const filterSelect = document.getElementById('appointment-patient-filter');
+        if (!filterSelect) return;
+
+        const currentValue = filterSelect.value || 'all';
+
+        filterSelect.innerHTML = '<option value="all">Todos los pacientes</option>';
+
+        if (!patients) {
+            // If patients not provided, fetch them
+            Storage.getPatients().then(patientsList => {
+                const sortedPatients = patientsList.sort((a, b) => {
+                    const nameA = `${a.firstname} ${a.lastname}`.toLowerCase();
+                    const nameB = `${b.firstname} ${b.lastname}`.toLowerCase();
+                    return nameA.localeCompare(nameB);
+                });
+
+                sortedPatients.forEach(patient => {
+                    const option = document.createElement('option');
+                    option.value = patient.id;
+                    option.textContent = `${patient.firstname} ${patient.lastname}`;
+                    filterSelect.appendChild(option);
+                });
+
+                filterSelect.value = currentValue;
+            });
+        } else {
+            patients.forEach(patient => {
+                const option = document.createElement('option');
+                option.value = patient.id;
+                option.textContent = `${patient.firstname} ${patient.lastname}`;
+                filterSelect.appendChild(option);
+            });
+
+            filterSelect.value = currentValue;
+        }
     }
 
     static async getFilteredAppointments() {
         let appointments = await Storage.getAppointments();
         const dateFilter = document.getElementById('appointment-filter').value;
         const typeFilter = document.getElementById('appointment-type-filter').value;
+        const patientFilter = document.getElementById('appointment-patient-filter').value;
 
         // Apply date filter
         const today = new Date();
@@ -294,6 +340,11 @@ class Appointments {
         // Apply type filter
         if (typeFilter !== 'all') {
             appointments = appointments.filter(a => a.type === typeFilter);
+        }
+
+        // Apply patient filter
+        if (patientFilter !== 'all') {
+            appointments = appointments.filter(a => a.patientId === patientFilter);
         }
 
         // Sort by date and time
