@@ -74,10 +74,21 @@ class Appointments {
 
     static async openAppointmentModal(appointmentId = null) {
         const modal = document.getElementById('appointment-modal');
-        const form = document.getElementById('patient-form');
+        const form = document.getElementById('appointment-form');
         const title = document.getElementById('appointment-modal-title');
 
+        // Always reset form first
         form.reset();
+
+        // Clear all fields explicitly
+        document.getElementById('appointment-id').value = '';
+        document.getElementById('appointment-patient').value = '';
+        document.getElementById('appointment-date').value = '';
+        document.getElementById('appointment-time').value = '';
+        document.getElementById('appointment-type').value = 'presencial';
+        document.getElementById('appointment-notes').value = '';
+        document.getElementById('appointment-payment-status').value = 'pendiente';
+        document.getElementById('appointment-payment-amount').value = '';
 
         if (appointmentId) {
             const appointment = await Storage.getAppointmentById(appointmentId);
@@ -94,8 +105,7 @@ class Appointments {
             }
         } else {
             title.textContent = 'Nueva Cita';
-            document.getElementById('appointment-id').value = '';
-            // Set default date to today
+            // Set default date to today for new appointments
             const today = new Date().toISOString().split('T')[0];
             document.getElementById('appointment-date').value = today;
         }
