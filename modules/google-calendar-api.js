@@ -514,7 +514,11 @@ class GoogleCalendarAPI {
             if (tzInfo) {
                 description += `🕐 Horario de la cita:\n`;
                 description += `• ${tzInfo.colombiaTime} (hora Colombia)\n`;
-                description += `• ${tzInfo.localTime} (hora ${tzInfo.label})\n\n`;
+                if (tzInfo.dateChanged) {
+                    description += `• ${tzInfo.localDate} · ${tzInfo.localTime} (hora ${tzInfo.label}) ⚠️ distinto día\n\n`;
+                } else {
+                    description += `• ${tzInfo.localTime} (hora ${tzInfo.label})\n\n`;
+                }
             }
         }
 

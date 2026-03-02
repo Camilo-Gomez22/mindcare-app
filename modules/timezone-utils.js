@@ -89,25 +89,29 @@ export function getTimezoneFromLocation(connectionLocation) {
 
 /**
  * Convierte una hora Colombia (dateStr: 'YYYY-MM-DD', timeStr: 'HH:MM')
+ * al timestamp UTC real, que luego puede ser formateado en cualquier timezone.
+ */
+function toUtcMs(dateStr, timeStr) {
+    const [year, month, day] = dateStr.split('-').map(Number);
+    const [hours, minutes] = timeStr.split(':').map(Number);
+    // Colombia es UTC-5 (sin horario de verano)
+    const bogotaOffsetMs = 5 * 60 * 60 * 1000;
+    return Date.UTC(year, month - 1, day, hours, minutes) + bogotaOffsetMs;
+}
+
+/**
+ * Convierte una hora Colombia (dateStr: 'YYYY-MM-DD', timeStr: 'HH:MM')
  * al timezone de destino y retorna la hora formateada en 12h (ej: "2:00 PM").
  */
 export function formatTimeInTimezone(dateStr, timeStr, timezone) {
     try {
-        // Construir la fecha en hora Colombia sin ambigüedad de timezone
-        const [year, month, day] = dateStr.split('-').map(Number);
-        const [hours, minutes] = timeStr.split(':').map(Number);
-
-        // Crear fecha como si fuera Colombia (UTC-5)
-        const bogotaOffset = -5 * 60; // minutos
-        const utcMs = Date.UTC(year, month - 1, day, hours, minutes) - bogotaOffset * 60 * 1000;
-
+        const utcMs = toUtcMs(dateStr, timeStr);
         const formatter = new Intl.DateTimeFormat('es-CO', {
             hour: 'numeric',
             minute: '2-digit',
             hour12: true,
             timeZone: timezone
         });
-
         return formatter.format(new Date(utcMs));
     } catch (e) {
         console.error('Error formateando hora en timezone:', timezone, e);
@@ -116,14 +120,55 @@ export function formatTimeInTimezone(dateStr, timeStr, timezone) {
 }
 
 /**
+ * Retorna la fecha formateada en el timezone de destino (ej: "martes, 4 de marzo").
+ */
+function formatDateInTimezone(dateStr, timeStr, timezone) {
+    try {
+        const utcMs = toUtcMs(dateStr, timeStr);
+        const formatter = new Intl.DateTimeFormat('es-CO', {
+            weekday: 'long',
+            day: 'numeric',
+            month: 'long',
+            timeZone: timezone
+        });
+        return formatter.format(new Date(utcMs));
+    } catch (e) {
+        console.error('Error formateando fecha en timezone:', timezone, e);
+        return null;
+    }
+}
+
+/**
+ * Retorna el número del día del mes en el timezone dado (para comparar si el día cambió).
+ */
+function getDayInTimezone(dateStr, timeStr, timezone) {
+    try {
+        const utcMs = toUtcMs(dateStr, timeStr);
+        const formatter = new Intl.DateTimeFormat('en-US', {
+            day: 'numeric',
+            timeZone: timezone
+        });
+        return parseInt(formatter.format(new Date(utcMs)));
+    } catch (e) {
+        return null;
+    }
+}
+
+/**
  * Función principal.
- * Retorna un objeto con la hora Colombia formateada y la hora local del paciente,
- * o null si no hay timezone reconocido para el paciente.
+ * Retorna un objeto con la hora Colombia, la hora local del paciente,
+ * y si el día de la cita cambia en el timezone del paciente.
  *
  * @param {string} dateStr - Fecha de la cita 'YYYY-MM-DD'
  * @param {string} timeStr - Hora de la cita 'HH:MM'
  * @param {string} connectionLocation - Lugar de conexión del paciente (texto libre)
- * @returns {{ colombiaTime: string, localTime: string, label: string } | null}
+ * @returns {{
+ *   colombiaTime: string,
+ *   localTime: string,
+ *   label: string,
+ *   dateChanged: boolean,
+ *   localDate: string|null
+ * } | null}
  */
 export function getPatientTimezoneInfo(dateStr, timeStr, connectionLocation) {
     const tzEntry = getTimezoneFromLocation(connectionLocation);
@@ -137,9 +182,21 @@ export function getPatientTimezoneInfo(dateStr, timeStr, connectionLocation) {
 
     if (!colombiaTime || !localTime) return null;
 
+    // Detectar si el día de la cita cambia en el timezone del paciente
+    const colombiaDay = getDayInTimezone(dateStr, timeStr, 'America/Bogota');
+    const localDay = getDayInTimezone(dateStr, timeStr, tzEntry.timezone);
+    const dateChanged = colombiaDay !== null && localDay !== null && colombiaDay !== localDay;
+
+    // Fecha local formateada (solo si el día cambió)
+    const localDate = dateChanged
+        ? formatDateInTimezone(dateStr, timeStr, tzEntry.timezone)
+        : null;
+
     return {
         colombiaTime,
         localTime,
-        label: tzEntry.label
+        label: tzEntry.label,
+        dateChanged,
+        localDate
     };
 }

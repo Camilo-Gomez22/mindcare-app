@@ -39,7 +39,13 @@ class Notifications {
         // Construir línea de hora
         let horaLine;
         if (tzInfo) {
-            horaLine = `🕐 Hora: ${tzInfo.colombiaTime} (hora Colombia) / ${tzInfo.localTime} (hora ${tzInfo.label})`;
+            if (tzInfo.dateChanged) {
+                // El día de la cita es diferente en el timezone del paciente
+                horaLine = `🕐 Hora Colombia: ${tzInfo.colombiaTime}\n`;
+                horaLine += `🌍 Hora ${tzInfo.label}: ${tzInfo.localDate} · ${tzInfo.localTime} ⚠️ (distinto día al de Colombia)`;
+            } else {
+                horaLine = `🕐 Hora: ${tzInfo.colombiaTime} (hora Colombia) / ${tzInfo.localTime} (hora ${tzInfo.label})`;
+            }
         } else {
             horaLine = `🕐 Hora: ${appointment.time} (hora Colombia)`;
         }
