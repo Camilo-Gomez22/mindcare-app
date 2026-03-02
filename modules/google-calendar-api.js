@@ -573,12 +573,46 @@ class GoogleCalendarAPI {
             console.log('Evento actualizado:', response.result);
 
             // Extraer el nuevo link de Meet (si aplica)
+            // La API puede retornar conferenceData en estado "pending" en el update,
+            // así que si no hay entryPoints aún, esperamos y hacemos un GET del evento.
             let meetLink = null;
-            if (response.result.conferenceData && response.result.conferenceData.entryPoints) {
-                const meetEntry = response.result.conferenceData.entryPoints.find(e => e.entryPointType === 'video');
-                if (meetEntry) {
-                    meetLink = meetEntry.uri;
-                    console.log('Nuevo link de Meet generado:', meetLink);
+
+            if (isVirtual) {
+                // Intentar extraer del response directo
+                if (response.result.conferenceData && response.result.conferenceData.entryPoints) {
+                    const meetEntry = response.result.conferenceData.entryPoints.find(e => e.entryPointType === 'video');
+                    if (meetEntry) {
+                        meetLink = meetEntry.uri;
+                        console.log('✅ Meet link extraído directamente:', meetLink);
+                    }
+                }
+
+                // Si el link aún no está (estado pending), esperar y consultar el evento de nuevo
+                if (!meetLink) {
+                    console.log('⏳ conferenceData pendiente, esperando 2s y consultando el evento...');
+                    await new Promise(resolve => setTimeout(resolve, 2000));
+
+                    try {
+                        const getResponse = await gapi.client.calendar.events.get({
+                            calendarId: 'primary',
+                            eventId: googleEventId
+                        });
+
+                        const cd = getResponse.result.conferenceData;
+                        if (cd && cd.entryPoints) {
+                            const meetEntry = cd.entryPoints.find(e => e.entryPointType === 'video');
+                            if (meetEntry) {
+                                meetLink = meetEntry.uri;
+                                console.log('✅ Meet link obtenido tras polling:', meetLink);
+                            }
+                        }
+
+                        if (!meetLink) {
+                            console.warn('⚠️ Meet link no disponible después del polling');
+                        }
+                    } catch (pollError) {
+                        console.error('Error obteniendo evento en polling:', pollError);
+                    }
                 }
             }
 

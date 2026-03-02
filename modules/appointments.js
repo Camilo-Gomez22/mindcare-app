@@ -171,11 +171,14 @@ class Appointments {
 
                     // Si el tipo de cita cambió, actualizar el meetLink en Storage
                     if (updateResult) {
-                        const newMeetLink = updateResult.meetLink || '';
-                        // Solo actualizar si el meetLink cambió (nuevo link, o se eliminó al pasar a presencial)
-                        if (newMeetLink !== (updated.meetLink || '')) {
-                            await Storage.updateAppointment(id, { meetLink: newMeetLink });
-                            console.log('🔗 meetLink actualizado:', newMeetLink || '(eliminado)');
+                        if (appointmentData.type === 'virtual' && updateResult.meetLink) {
+                            // Guardar el nuevo link de Meet generado
+                            await Storage.updateAppointment(id, { meetLink: updateResult.meetLink });
+                            console.log('🔗 meetLink guardado:', updateResult.meetLink);
+                        } else if (appointmentData.type === 'presencial') {
+                            // Limpiar el meetLink si pasó a presencial
+                            await Storage.updateAppointment(id, { meetLink: '' });
+                            console.log('🔗 meetLink eliminado (cita presencial)');
                         }
                     }
                 }
