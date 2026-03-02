@@ -167,7 +167,17 @@ class Appointments {
                 // Si está conectado a Google y NO es histórica, actualizar evento
                 if (GoogleCalendarAPI.isSignedIn && updated.googleEventId && !isHistorical) {
                     const patient = await Storage.getPatientById(updated.patientId);
-                    GoogleCalendarAPI.updateEvent(updated.googleEventId, updated, patient);
+                    const updateResult = await GoogleCalendarAPI.updateEvent(updated.googleEventId, updated, patient);
+
+                    // Si el tipo de cita cambió, actualizar el meetLink en Storage
+                    if (updateResult) {
+                        const newMeetLink = updateResult.meetLink || '';
+                        // Solo actualizar si el meetLink cambió (nuevo link, o se eliminó al pasar a presencial)
+                        if (newMeetLink !== (updated.meetLink || '')) {
+                            await Storage.updateAppointment(id, { meetLink: newMeetLink });
+                            console.log('🔗 meetLink actualizado:', newMeetLink || '(eliminado)');
+                        }
+                    }
                 }
             } else {
                 console.log('✨ Creando nueva cita:', appointmentData);

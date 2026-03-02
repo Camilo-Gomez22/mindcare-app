@@ -520,11 +520,12 @@ class GoogleCalendarAPI {
             const endDate = new Date(startDate.getTime() + 60 * 60 * 1000);
 
             const settings = await Storage.getSettings();
+            const isVirtual = appointment.type === 'virtual';
 
             const event = {
                 summary: `Cita - ${patient.firstname} ${patient.lastname}`,
-                location: appointment.type === 'virtual'
-                    ? appointment.meetLink || 'Virtual'
+                location: isVirtual
+                    ? (appointment.meetLink || 'Virtual')
                     : settings.officeAddress,
                 description: this.buildEventDescription(appointment, settings.officeMapLink),
                 start: {
@@ -547,15 +548,44 @@ class GoogleCalendarAPI {
                 }
             };
 
+            // Si es virtual, solicitar creación de Google Meet
+            // Si es presencial, eliminar conferencia existente
+            if (isVirtual) {
+                event.conferenceData = {
+                    createRequest: {
+                        requestId: `meet-update-${googleEventId}-${Date.now()}`,
+                        conferenceSolutionKey: { type: 'hangoutsMeet' }
+                    }
+                };
+            } else {
+                // Eliminar la conferencia si existe (pasar objeto vacío la quita)
+                event.conferenceData = {};
+            }
+
             const response = await gapi.client.calendar.events.update({
                 calendarId: 'primary',
                 eventId: googleEventId,
                 resource: event,
+                conferenceDataVersion: isVirtual ? 1 : 0,
                 sendUpdates: 'all'
             });
 
             console.log('Evento actualizado:', response.result);
-            return response.result;
+
+            // Extraer el nuevo link de Meet (si aplica)
+            let meetLink = null;
+            if (response.result.conferenceData && response.result.conferenceData.entryPoints) {
+                const meetEntry = response.result.conferenceData.entryPoints.find(e => e.entryPointType === 'video');
+                if (meetEntry) {
+                    meetLink = meetEntry.uri;
+                    console.log('Nuevo link de Meet generado:', meetLink);
+                }
+            }
+
+            return {
+                googleEventResult: response.result,
+                meetLink: meetLink
+            };
 
         } catch (error) {
             console.error('Error actualizando evento:', error);
