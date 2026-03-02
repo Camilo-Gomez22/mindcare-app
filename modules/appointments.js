@@ -590,18 +590,20 @@ class Appointments {
         }
     }
 
-    static shareWhatsApp(appointmentId) {
-        const appointment = Storage.getAppointmentById(appointmentId);
-        const patient = Storage.getPatientById(appointment.patientId);
+    static async shareWhatsApp(appointmentId) {
+        const appointment = await Storage.getAppointmentById(appointmentId);
+        if (!appointment) return;
+        const patient = await Storage.getPatientById(appointment.patientId);
 
         if (patient && appointment) {
             Notifications.notifyAppointmentWhatsApp(patient, appointment);
         }
     }
 
-    static shareEmail(appointmentId) {
-        const appointment = Storage.getAppointmentById(appointmentId);
-        const patient = Storage.getPatientById(appointment.patientId);
+    static async shareEmail(appointmentId) {
+        const appointment = await Storage.getAppointmentById(appointmentId);
+        if (!appointment) return;
+        const patient = await Storage.getPatientById(appointment.patientId);
 
         if (patient && appointment) {
             Notifications.notifyAppointmentEmail(patient, appointment);
