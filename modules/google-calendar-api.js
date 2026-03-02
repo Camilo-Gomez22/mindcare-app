@@ -16,6 +16,7 @@ const CONFIG = {
 
 import { showToast } from '../app.js';
 import Storage from './storage.js';
+import { getPatientTimezoneInfo } from './timezone-utils.js';
 
 class GoogleCalendarAPI {
     static isInitialized = false;
@@ -417,7 +418,7 @@ class GoogleCalendarAPI {
                 location: appointment.type === 'virtual'
                     ? appointment.meetLink || 'Virtual'
                     : officeLocation,
-                description: this.buildEventDescription(appointment, settings.officeMapLink),
+                description: this.buildEventDescription(appointment, settings.officeMapLink, patient),
                 start: {
                     dateTime: startDate.toISOString(),
                     timeZone: 'America/Bogota',
@@ -493,7 +494,7 @@ class GoogleCalendarAPI {
         }
     }
 
-    static buildEventDescription(appointment, officeMapLink = null) {
+    static buildEventDescription(appointment, officeMapLink = null, patient = null) {
         let description = '';
 
         if (appointment.type === 'virtual' && appointment.meetLink) {
@@ -501,6 +502,20 @@ class GoogleCalendarAPI {
             description += `Por favor, conéctate unos minutos antes de la hora programada.\n\n`;
         } else if (appointment.type !== 'virtual' && officeMapLink) {
             description += `📍 Ubicación en Google Maps: ${officeMapLink}\n\n`;
+        }
+
+        // Mostrar hora Colombia y hora local del paciente si aplica
+        if (patient && patient.connectionLocation) {
+            const tzInfo = getPatientTimezoneInfo(
+                appointment.date,
+                appointment.time,
+                patient.connectionLocation
+            );
+            if (tzInfo) {
+                description += `🕐 Horario de la cita:\n`;
+                description += `• ${tzInfo.colombiaTime} (hora Colombia)\n`;
+                description += `• ${tzInfo.localTime} (hora ${tzInfo.label})\n\n`;
+            }
         }
 
         // Mensaje de confirmación y política de cancelación
@@ -527,7 +542,7 @@ class GoogleCalendarAPI {
                 location: isVirtual
                     ? (appointment.meetLink || 'Virtual')
                     : settings.officeAddress,
-                description: this.buildEventDescription(appointment, settings.officeMapLink),
+                description: this.buildEventDescription(appointment, settings.officeMapLink, patient),
                 start: {
                     dateTime: startDate.toISOString(),
                     timeZone: 'America/Bogota',

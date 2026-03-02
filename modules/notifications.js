@@ -1,5 +1,7 @@
 // Notifications Module - Handles WhatsApp and Email notifications
 
+import { getPatientTimezoneInfo } from './timezone-utils.js';
+
 class Notifications {
     static sendWhatsApp(phoneNumber, message) {
         // WhatsApp Web API - opens WhatsApp with pre-filled message
@@ -17,7 +19,9 @@ class Notifications {
     }
 
     static generateAppointmentMessage(patient, appointment) {
-        const date = new Date(appointment.date);
+        // Fix timezone issue by parsing YYYY-MM-DD explicitly
+        const [year, month, day] = appointment.date.split('-').map(Number);
+        const date = new Date(year, month - 1, day);
         const formattedDate = date.toLocaleDateString('es-ES', {
             weekday: 'long',
             year: 'numeric',
@@ -25,10 +29,25 @@ class Notifications {
             day: 'numeric'
         });
 
+        // Verificar si el paciente tiene zona horaria diferente a Colombia
+        const tzInfo = getPatientTimezoneInfo(
+            appointment.date,
+            appointment.time,
+            patient.connectionLocation
+        );
+
+        // Construir línea de hora
+        let horaLine;
+        if (tzInfo) {
+            horaLine = `🕐 Hora: ${tzInfo.colombiaTime} (hora Colombia) / ${tzInfo.localTime} (hora ${tzInfo.label})`;
+        } else {
+            horaLine = `🕐 Hora: ${appointment.time} (hora Colombia)`;
+        }
+
         let message = `Hola ${patient.firstname},\n\n`;
         message += `Te recuerdo tu cita de psicoanálisis:\n`;
         message += `📅 Fecha: ${formattedDate}\n`;
-        message += `🕐 Hora: ${appointment.time}\n`;
+        message += `${horaLine}\n`;
         message += `📍 Modalidad: ${appointment.type === 'virtual' ? 'Virtual' : 'Presencial'}\n\n`;
 
         if (appointment.type === 'virtual' && appointment.meetLink) {
@@ -41,7 +60,9 @@ class Notifications {
     }
 
     static generateAppointmentEmail(patient, appointment) {
-        const subject = `Recordatorio de Cita - ${new Date(appointment.date).toLocaleDateString('es-ES')}`;
+        const [year, month, day] = appointment.date.split('-').map(Number);
+        const date = new Date(year, month - 1, day);
+        const subject = `Recordatorio de Cita - ${date.toLocaleDateString('es-ES')}`;
         const body = this.generateAppointmentMessage(patient, appointment);
         return { subject, body };
     }
