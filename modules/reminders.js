@@ -2,6 +2,7 @@
 
 import Storage from './storage.js';
 import { showToast } from '../app.js';
+import { getPatientTimezoneInfo } from './timezone-utils.js';
 
 class Reminders {
     static init() {
@@ -184,16 +185,26 @@ class Reminders {
             // Convert time from 24h to 12h format with AM/PM
             const time12h = this.convertTo12HourFormat(appointment.time);
 
-            // Only add "hora Colombia" if patient connects from outside Colombia
-            const isOutsideColombia = patient.connectionLocation &&
-                !patient.connectionLocation.toLowerCase().includes('colombia') &&
-                !patient.connectionLocation.toLowerCase().includes('bogot') &&
-                !patient.connectionLocation.toLowerCase().includes('medell') &&
-                !patient.connectionLocation.toLowerCase().includes('cali') &&
-                !patient.connectionLocation.toLowerCase().includes('barranquilla') &&
-                !patient.connectionLocation.toLowerCase().includes('cartagena');
+            // --- Timezone-aware message ---
+            const tzInfo = getPatientTimezoneInfo(
+                appointment.date,
+                appointment.time,
+                patient.connectionLocation
+            );
 
-            const timeText = isOutsideColombia ? `${time12h} hora Colombia` : time12h;
+            let timeText;
+            if (tzInfo) {
+                // International patient: show local time + Colombia time
+                // If the appointment date is different in their timezone, mention it too
+                if (tzInfo.dateChanged && tzInfo.localDate) {
+                    timeText = `${tzInfo.localTime} (${tzInfo.label}) — que corresponde al ${tzInfo.localDate}, o ${tzInfo.colombiaTime} hora Colombia`;
+                } else {
+                    timeText = `${tzInfo.localTime} hora ${tzInfo.label} (${tzInfo.colombiaTime} hora Colombia)`;
+                }
+            } else {
+                // Local / Colombian patient: simple format as before
+                timeText = time12h;
+            }
 
             const message = `Hola ${patient.firstname}, te recordamos tu cita de mañana ${formattedDate} a las ${timeText}. Te esperamos.`;
 
