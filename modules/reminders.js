@@ -192,21 +192,22 @@ class Reminders {
                 patient.connectionLocation
             );
 
-            let timeText;
+            let dateTimeText;
             if (tzInfo) {
-                // International patient: show local time + Colombia time
-                // If the appointment date is different in their timezone, mention it too
+                // International patient
                 if (tzInfo.dateChanged && tzInfo.localDate) {
-                    timeText = `${tzInfo.localTime} (${tzInfo.label}) — que corresponde al ${tzInfo.localDate}, o ${tzInfo.colombiaTime} hora Colombia`;
+                    // Day changed: Show their local date/time first, then equivalent Colombia date/time
+                    dateTimeText = `${tzInfo.localDate} a las ${tzInfo.localTime} (${tzInfo.label}), que corresponde al ${formattedDate}, ${tzInfo.colombiaTime} hora Colombia`;
                 } else {
-                    timeText = `${tzInfo.localTime} hora ${tzInfo.label} (${tzInfo.colombiaTime} hora Colombia)`;
+                    // Same day: Show general date, then local time and Colombia time
+                    dateTimeText = `${formattedDate} a las ${tzInfo.localTime} hora ${tzInfo.label} (${tzInfo.colombiaTime} hora Colombia)`;
                 }
             } else {
                 // Local / Colombian patient: simple format as before
-                timeText = time12h;
+                dateTimeText = `${formattedDate} a las ${time12h}`;
             }
 
-            const message = `Hola ${patient.firstname}, te recordamos tu cita de mañana ${formattedDate} a las ${timeText}. Te esperamos.`;
+            const message = `Hola ${patient.firstname}, te recordamos tu cita de mañana ${dateTimeText}. Te esperamos.`;
 
             // Clean phone number
             let cleanPhone = String(patient.phone).replace(/[^0-9]/g, '');
