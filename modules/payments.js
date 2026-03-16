@@ -238,9 +238,20 @@ class Payments {
         const totalSessions = allAppointments.length;
         const hasPending = pendingAppointments.length > 0;
 
-        // Build summary rows for ALL sessions
+        // Determine which rows to show based on the active status filter
+        const statusFilter = document.getElementById('payment-status-filter').value;
+        let displayAppointments;
+        if (statusFilter === 'pending') {
+            displayAppointments = allAppointments.filter(a => a.paymentStatus === 'pendiente');
+        } else if (statusFilter === 'paid') {
+            displayAppointments = allAppointments.filter(a => a.paymentStatus !== 'pendiente');
+        } else {
+            displayAppointments = allAppointments;
+        }
+
+        // Build summary rows respecting the active filter
         let rows = '';
-        for (const apt of allAppointments) {
+        for (const apt of displayAppointments) {
             const [year, month, day] = apt.date.split('-').map(Number);
             const localDate = new Date(year, month - 1, day);
             const formattedDate = localDate.toLocaleDateString('es-ES', {
@@ -380,28 +391,28 @@ class Payments {
 
             /* MANUAL DATE SELECTION - Commented out, uncomment only for historical adjustments
             const appointment = await Storage.getAppointmentById(appointmentId);
-
-// Prompt for payment date
-const dateInput = prompt(
+    
+    // Prompt for payment date
+    const dateInput = prompt(
     `¿En qué fecha se recibió el pago?\n\n` +
     `Fecha de la cita: ${appointment.date}\n` +
     `Formato: AAAA-MM-DD (ej: 2026-01-26)`,
     today
-);
+    );
             
             // If user cancels, abort
             if (dateInput === null) {
                 return;
             }
-
-// Validate date format
-const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
-if (!dateRegex.test(dateInput)) {
+    
+    // Validate date format
+    const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+    if (!dateRegex.test(dateInput)) {
     import('../app.js').then(module => {
         module.showToast('Formato de fecha inválido. Usa AAAA-MM-DD', 'error');
     });
     return;
-}
+    }
             
             // Validate date is not in the future
             const paymentDate = new Date(dateInput);
