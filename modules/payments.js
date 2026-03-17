@@ -238,16 +238,8 @@ class Payments {
         const totalSessions = allAppointments.length;
         const hasPending = pendingAppointments.length > 0;
 
-        // Determine which rows to show based on the active status filter
-        const statusFilter = document.getElementById('payment-status-filter').value;
-        let displayAppointments;
-        if (statusFilter === 'pending') {
-            displayAppointments = allAppointments.filter(a => a.paymentStatus === 'pendiente');
-        } else if (statusFilter === 'paid') {
-            displayAppointments = allAppointments.filter(a => a.paymentStatus !== 'pendiente');
-        } else {
-            displayAppointments = allAppointments;
-        }
+        // Always show only pending appointments in the summary table
+        const displayAppointments = pendingAppointments;
 
         // Build summary rows respecting the active filter
         let rows = '';
